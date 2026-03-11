@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RA Command — Regulatory Affairs Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #f5f2eb; --surface: #fffef9; --surface2: #f0ede4; --border: #ddd8cc; --border-strong: #b5ae9f;
+    --text: #1a1814; --text-muted: #7a7368; --accent: #c0392b; --accent-light: #f9e8e6;
+    --gold: #b8860b; --gold-light: #fef9e7; --teal: #1a6b5e; --teal-light: #e6f4f1;
+    --blue: #1c4e8a; --blue-light: #e8eef7; --green: #2d6a2d; --green-light: #e8f4e8;
+    --orange: #c05800; --orange-light: #fef0e6; --purple: #5c2d91; --purple-light: #f0eaf8;
+    --shadow: 0 1px 3px rgba(26,24,20,.08), 0 4px 16px rgba(26,24,20,.06);
+    --shadow-md: 0 4px 24px rgba(26,24,20,.12); --radius: 6px; --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  .sidebar { width: 220px; min-width: 220px; background: var(--text); display: flex; flex-direction: column; }
+  .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .sidebar-logo h1 { font-family: 'DM Serif Display', serif; font-size: 20px; color: #fff; letter-spacing: -.3px; }
+  .sidebar-logo span { font-family: 'DM Mono', monospace; font-size: 9px; color: rgba(255,255,255,.4); letter-spacing: 2px; text-transform: uppercase; display: block; margin-top: 4px; }
+  .sidebar-nav { padding: 16px 12px; flex: 1; }
+  .nav-section-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.8px; text-transform: uppercase; color: rgba(255,255,255,.3); padding: 0 8px; margin-bottom: 6px; margin-top: 16px; }
+  .nav-section-label:first-child { margin-top: 0; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius); cursor: pointer; color: rgba(255,255,255,.6); font-size: 13.5px; transition: all .15s; user-select: none; }
+  .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+  .nav-item.active { background: var(--accent); color: #fff; font-weight: 500; }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .nav-badge { margin-left: auto; background: rgba(255,255,255,.12); color: rgba(255,255,255,.7); font-family: 'DM Mono', monospace; font-size: 10px; padding: 1px 6px; border-radius: 20px; }
+  .nav-item.active .nav-badge { background: rgba(255,255,255,.25); color: #fff; }
+  .sidebar-footer { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.08); font-size: 11px; color: rgba(255,255,255,.35); display: flex; align-items: center; gap: 6px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #666; transition: background .3s; flex-shrink: 0; }
+  .sync-dot.online { background: #4caf50; }
+  .sync-dot.syncing { background: var(--gold); animation: pulse .8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 28px; height: 60px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .topbar-title { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -.4px; }
+  .topbar-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .topbar-spacer { flex: 1; }
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #a93226; }
+  .btn-primary:disabled { background: #bbb; cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--text); border: 1.5px solid var(--border-strong); }
+  .btn-outline:hover { border-color: var(--text); background: var(--surface2); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: none; cursor: pointer; }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .content { flex: 1; overflow-y: auto; padding: 28px; }
+
+  .loading-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 16px; }
+  .loading-overlay.hidden { display: none; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-overlay h2 { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .loading-overlay p { font-size: 13px; color: var(--text-muted); }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 22px; position: relative; overflow: hidden; box-shadow: var(--shadow); }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .stat-card.red::before { background: var(--accent); }
+  .stat-card.teal::before { background: var(--teal); }
+  .stat-card.gold::before { background: var(--gold); }
+  .stat-card.blue::before { background: var(--blue); }
+  .stat-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 36px; line-height: 1; margin-bottom: 4px; }
+  .stat-sub { font-size: 12px; color: var(--text-muted); }
+  .stat-sub .overdue { color: var(--accent); font-weight: 600; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); margin-bottom: 24px; }
+  .panel-header { display: flex; align-items: center; gap: 12px; padding: 18px 24px; border-bottom: 1px solid var(--border); }
+  .panel-title { font-family: 'DM Serif Display', serif; font-size: 17px; letter-spacing: -.2px; }
+  .panel-count { font-family: 'DM Mono', monospace; font-size: 11px; background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 20px; color: var(--text-muted); }
+  .panel-header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+  .filter-bar { display: flex; gap: 8px; padding: 14px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .filter-chip { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1.5px solid var(--border); background: transparent; color: var(--text-muted); transition: all .12s; font-family: 'DM Sans', sans-serif; }
+  .filter-chip:hover { border-color: var(--text); color: var(--text); }
+  .filter-chip.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); white-space: nowrap; }
+  thead th:first-child { padding-left: 24px; }
+  thead th:last-child { padding-right: 24px; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 14px 16px; font-size: 13.5px; vertical-align: middle; }
+  tbody td:first-child { padding-left: 24px; }
+  tbody td:last-child { padding-right: 24px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .badge-submitted { background: var(--teal-light); color: var(--teal); } .badge-submitted .badge-dot { background: var(--teal); }
+  .badge-review { background: var(--gold-light); color: var(--gold); } .badge-review .badge-dot { background: var(--gold); }
+  .badge-approved { background: var(--green-light); color: var(--green); } .badge-approved .badge-dot { background: var(--green); }
+  .badge-preparation { background: var(--blue-light); color: var(--blue); } .badge-preparation .badge-dot { background: var(--blue); }
+  .badge-hold { background: var(--orange-light); color: var(--orange); } .badge-hold .badge-dot { background: var(--orange); }
+  .badge-withdrawn { background: var(--surface2); color: var(--text-muted); } .badge-withdrawn .badge-dot { background: var(--border-strong); }
+  .badge-task-open { background: var(--blue-light); color: var(--blue); }
+  .badge-task-inprogress { background: var(--gold-light); color: var(--gold); }
+  .badge-task-done { background: var(--green-light); color: var(--green); }
+  .badge-task-blocked { background: var(--accent-light); color: var(--accent); }
+  .badge-high { background: var(--accent-light); color: var(--accent); }
+  .badge-medium { background: var(--gold-light); color: var(--gold); }
+  .badge-low { background: var(--teal-light); color: var(--teal); }
+  .type-pill { font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 500; padding: 3px 8px; border-radius: 4px; background: var(--purple-light); color: var(--purple); border: 1px solid rgba(92,45,145,.15); }
+  .due-date { font-family: 'DM Mono', monospace; font-size: 12px; }
+  .due-overdue { color: var(--accent); font-weight: 600; }
+  .due-soon { color: var(--orange); font-weight: 500; }
+  .due-ok { color: var(--text-muted); }
+  .assignee { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; color: #fff; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,24,20,.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); width: 580px; max-width: calc(100vw - 40px); max-height: 90vh; overflow-y: auto; animation: modalIn .2s ease; }
+  @keyframes modalIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .modal-header { display: flex; align-items: center; gap: 12px; padding: 22px 24px 18px; border-bottom: 1px solid var(--border); }
+  .modal-header h2 { font-family: 'DM Serif Display', serif; font-size: 20px; letter-spacing: -.3px; flex: 1; }
+  .modal-close { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text-muted); background: transparent; border: none; }
+  .modal-close:hover { background: var(--surface2); }
+  .modal-body { padding: 24px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+  input[type=text], input[type=date], select, textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: var(--text); background: var(--surface); outline: none; transition: border-color .15s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 18px 24px; border-top: 1px solid var(--border); background: var(--surface2); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+
+  .empty-state { padding: 60px 24px; text-align: center; color: var(--text-muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .5; }
+  .empty-state h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .upcoming-item { display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--border); transition: background .1s; }
+  .upcoming-item:last-child { border-bottom: none; }
+  .upcoming-item:hover { background: var(--surface2); }
+  .upcoming-date-box { width: 44px; height: 44px; border-radius: var(--radius); background: var(--accent-light); color: var(--accent); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+  .upcoming-date-box .day { font-family: 'DM Serif Display', serif; font-size: 18px; line-height: 1; }
+  .upcoming-date-box .mon { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+  .upcoming-info { flex: 1; min-width: 0; }
+  .upcoming-title { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .upcoming-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .action-needed { display: flex; align-items: flex-start; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--border); }
+  .action-needed:last-child { border-bottom: none; }
+  .action-needed:hover { background: var(--surface2); }
+  .action-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .action-title { font-size: 13.5px; font-weight: 500; margin-bottom: 2px; }
+  .action-sub { font-size: 12px; color: var(--text-muted); }
+
+  .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px; }
+  .product-card { border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: all .15s; background: var(--surface); }
+  .product-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+  .product-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .product-name { font-family: 'DM Serif Display', serif; font-size: 16px; }
+  .product-id { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .product-meta { font-size: 12px; color: var(--text-muted); margin-top: 10px; line-height: 1.8; }
+  .product-subs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+
+  .toast { position: fixed; bottom: 28px; right: 28px; background: var(--text); color: #fff; padding: 13px 20px; border-radius: var(--radius-lg); font-size: 13.5px; box-shadow: var(--shadow-md); z-index: 2000; display: flex; align-items: center; gap: 10px; transform: translateY(80px); opacity: 0; transition: all .25s cubic-bezier(.34,1.56,.64,1); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── LOGIN SCREEN ─────────────────────────────────────────────────────────── */
+  .login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 99999; }
+  .login-screen.hidden { display: none; }
+  .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); width: 400px; max-width: calc(100vw - 32px); overflow: hidden; }
+  .login-header { background: var(--text); padding: 32px 36px 28px; text-align: center; }
+  .login-header h1 { font-family: 'DM Serif Display', serif; font-size: 28px; color: #fff; letter-spacing: -.5px; margin-bottom: 4px; }
+  .login-header p { font-family: 'DM Mono', monospace; font-size: 9px; color: rgba(255,255,255,.35); letter-spacing: 2.5px; text-transform: uppercase; }
+  .login-body { padding: 32px 36px; }
+  .login-body .form-group { margin-bottom: 18px; }
+  .login-error { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(192,57,43,.2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
+  .login-error.show { display: block; }
+  .login-btn { width: 100%; padding: 11px; font-size: 14px; font-weight: 600; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; margin-top: 4px; }
+  .login-btn:hover { background: #a93226; }
+  .login-btn:disabled { background: #bbb; cursor: not-allowed; }
+  .login-footer { text-align: center; font-size: 11.5px; color: var(--text-muted); padding: 0 36px 24px; line-height: 1.6; }
+  /* user chip in topbar */
+  .user-chip { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted); }
+  .user-chip .avatar-sm { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .logout-btn { font-size: 12px; color: var(--text-muted); background: transparent; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 4px 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .12s; }
+  .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── ADVANCED FILTERS ─────────────────────────────────────────────────────── */
+  .filter-row { display:flex; gap:10px; padding:12px 24px; border-bottom:1px solid var(--border); flex-wrap:wrap; align-items:center; background:var(--surface2); }
+  .filter-select { padding:5px 10px; border-radius:var(--radius); border:1.5px solid var(--border); font-size:12px; background:var(--surface); font-family:'DM Sans',sans-serif; color:var(--text); outline:none; cursor:pointer; }
+  .filter-select:focus { border-color:var(--accent); }
+  .filter-date { padding:5px 10px; border-radius:var(--radius); border:1.5px solid var(--border); font-size:12px; background:var(--surface); font-family:'DM Sans',sans-serif; color:var(--text); outline:none; }
+  .filter-clear { font-size:11.5px; color:var(--accent); background:transparent; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; padding:4px 8px; border-radius:var(--radius); }
+  .filter-clear:hover { background:var(--accent-light); }
+
+  /* ── WORKFLOW ──────────────────────────────────────────────────────────────── */
+  .workflow-board { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; padding:24px; align-items:start; }
+  .wf-col { background:var(--surface2); border-radius:var(--radius-lg); padding:14px; min-height:200px; }
+  .wf-col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .wf-col-title { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; font-weight:600; }
+  .wf-col-count { font-family:'DM Mono',monospace; font-size:10px; background:var(--surface); border:1px solid var(--border); padding:1px 7px; border-radius:20px; color:var(--text-muted); }
+  .wf-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:14px; margin-bottom:10px; cursor:pointer; transition:all .15s; }
+  .wf-card:hover { border-color:var(--accent); box-shadow:var(--shadow); }
+  .wf-card-title { font-weight:600; font-size:13.5px; margin-bottom:6px; }
+  .wf-card-meta { font-size:11.5px; color:var(--text-muted); line-height:1.7; }
+  .wf-card-files { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+  .wf-file-chip { display:inline-flex; align-items:center; gap:4px; background:var(--blue-light); color:var(--blue); border:1px solid rgba(28,78,138,.15); border-radius:4px; font-size:10.5px; padding:2px 8px; text-decoration:none; cursor:pointer; }
+  .wf-file-chip:hover { background:var(--blue); color:#fff; }
+  .wf-stage-draft { border-left:3px solid var(--blue); }
+  .wf-stage-review { border-left:3px solid var(--gold); }
+  .wf-stage-approved { border-left:3px solid var(--green); }
+  .wf-stage-rejected { border-left:3px solid var(--accent); }
+  .wf-stage-hold { border-left:3px solid var(--orange); }
+  .upload-zone { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; cursor:pointer; transition:all .15s; margin-top:12px; }
+  .upload-zone:hover { border-color:var(--accent); background:var(--accent-light); }
+  .upload-zone.dragover { border-color:var(--accent); background:var(--accent-light); }
+  .upload-zone-text { font-size:12.5px; color:var(--text-muted); }
+  .upload-zone-text strong { color:var(--accent); }
+  .file-list { margin-top:10px; display:flex; flex-direction:column; gap:6px; }
+  .file-item { display:flex; align-items:center; gap:8px; background:var(--surface2); border-radius:var(--radius); padding:7px 10px; font-size:12.5px; }
+  .file-item-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-item-size { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-muted); flex-shrink:0; }
+  .file-del { background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; padding:0 2px; }
+  .file-del:hover { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <h2>RA Command</h2>
+  <p>Connecting to database…</p>
+</div>
+
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>RA Command</h1>
+      <p>Regulatory Affairs Tracker</p>
+    </div>
+    <div class="login-body">
+      <div class="login-error" id="login-error"></div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="text" id="login-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In</button>
+    </div>
+    <div class="login-footer">
+      Access is by invitation only.<br>Contact your administrator to get an account.
+    </div>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none;">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>RA Command</h1>
+      <span>Regulatory Affairs</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" onclick="navigate('dashboard',this)"><span class="nav-icon">⬡</span> Dashboard</div>
+      <div class="nav-section-label">Management</div>
+      <div class="nav-item" onclick="navigate('tasks',this)"><span class="nav-icon">✓</span> Tasks <span class="nav-badge" id="task-badge">0</span></div>
+      <div class="nav-item" onclick="navigate('submissions',this)"><span class="nav-icon">◻</span> Submissions <span class="nav-badge" id="sub-badge">0</span></div>
+      <div class="nav-item" onclick="navigate('products',this)"><span class="nav-icon">◈</span> Products <span class="nav-badge" id="prod-badge">0</span></div>
+      <div class="nav-section-label">Settings</div>
+      <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
+      <div class="nav-section-label">Settings</div>
+      <div class="nav-item" onclick="navigate('notifications',this)"><span class="nav-icon">🔔</span> Notifications</div>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-status">Connecting…</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-sub" id="page-sub">Overview of your regulatory pipeline</div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="user-chip">
+        <div class="avatar-sm" id="user-avatar" style="background:#1a6b5e;">?</div>
+        <span id="user-email-display"></span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+      <button class="btn btn-primary" id="add-btn" onclick="openAddModal()">＋ Add New</button>
+    </header>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-row">
+          <div class="stat-card red"><div class="stat-label">Open Tasks</div><div class="stat-value" id="stat-open-tasks">0</div><div class="stat-sub"><span class="overdue" id="stat-overdue-tasks">0</span> overdue</div></div>
+          <div class="stat-card teal"><div class="stat-label">Active Submissions</div><div class="stat-value" id="stat-active-subs">0</div><div class="stat-sub" id="stat-sub-review">0 under review</div></div>
+          <div class="stat-card gold"><div class="stat-label">Products Tracked</div><div class="stat-value" id="stat-products">0</div><div class="stat-sub" id="stat-products-sub">—</div></div>
+          <div class="stat-card blue"><div class="stat-label">Due This Month</div><div class="stat-value" id="stat-due-month">0</div><div class="stat-sub">tasks &amp; submissions</div></div>
+        </div>
+        <div class="dash-grid">
+          <div class="panel"><div class="panel-header"><div class="panel-title">Upcoming Deadlines</div></div><div id="upcoming-list"></div></div>
+          <div class="panel"><div class="panel-header"><div class="panel-title">Action Needed</div></div><div id="action-list"></div></div>
+        </div>
+      </div>
+
+      <!-- TASKS -->
+      <div class="page" id="page-tasks">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Tasks</div>
+            <div class="panel-count" id="task-panel-count">0 tasks</div>
+            <div class="panel-header-actions">
+              <select id="task-sort" onchange="renderTasks()" style="padding:5px 10px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:12px;background:var(--surface);font-family:'DM Sans',sans-serif;">
+                <option value="due">Sort by Due Date</option><option value="priority">Sort by Priority</option><option value="status">Sort by Status</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Status:</span>
+            <button class="filter-chip active" onclick="setTaskFilter('all',this)">All</button>
+            <button class="filter-chip" onclick="setTaskFilter('open',this)">Open</button>
+            <button class="filter-chip" onclick="setTaskFilter('in-progress',this)">In Progress</button>
+            <button class="filter-chip" onclick="setTaskFilter('blocked',this)">Blocked</button>
+            <button class="filter-chip" onclick="setTaskFilter('done',this)">Done</button>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label">Filter:</span>
+            <select id="task-filter-product" class="filter-select" onchange="renderTasks()"><option value="">All Products</option></select>
+            <input type="date" id="task-filter-due-from" class="filter-date" onchange="renderTasks()" title="Due from">
+            <input type="date" id="task-filter-due-to" class="filter-date" onchange="renderTasks()" title="Due to">
+            <button class="filter-clear" onclick="clearTaskFilters()">✕ Clear</button>
+          </div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Task</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Due Date</th><th>Linked To</th><th>Actions</th></tr></thead>
+            <tbody id="tasks-tbody"></tbody></table>
+            <div id="tasks-empty" class="empty-state" style="display:none;"><div class="empty-icon">☑️</div><h3>No tasks yet</h3><p>Click "+ Add New" to create your first task.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBMISSIONS -->
+      <div class="page" id="page-submissions">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Submissions</div>
+            <div class="panel-count" id="sub-panel-count">0 submissions</div>
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Type:</span>
+            <button class="filter-chip active" onclick="setSubFilter('all',this)">All</button>
+            <button class="filter-chip" onclick="setSubFilter('New Registration',this)">New Registration</button>
+            <button class="filter-chip" onclick="setSubFilter('Renewal',this)">Renewal</button>
+            <button class="filter-chip" onclick="setSubFilter('Variation',this)">Variation</button>
+            <button class="filter-chip" onclick="setSubFilter('Appeal',this)">Appeal</button>
+            <button class="filter-chip" onclick="setSubFilter('Other',this)">Other</button>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label">Filter:</span>
+            <select id="sub-filter-status" class="filter-select" onchange="renderSubmissions()">
+              <option value="">All Statuses</option>
+              <option value="preparation">In Preparation</option>
+              <option value="submitted">Submitted</option>
+              <option value="review">Under Review</option>
+              <option value="approved">Approved</option>
+              <option value="hold">On Hold</option>
+              <option value="withdrawn">Withdrawn</option>
+            </select>
+            <select id="sub-filter-product" class="filter-select" onchange="renderSubmissions()"><option value="">All Products</option></select>
+            <input type="date" id="sub-filter-target-from" class="filter-date" onchange="renderSubmissions()" title="Target date from">
+            <input type="date" id="sub-filter-target-to" class="filter-date" onchange="renderSubmissions()" title="Target date to">
+            <button class="filter-clear" onclick="clearSubFilters()">✕ Clear</button>
+          </div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Submission ID</th><th>Product</th><th>Type</th><th>Status</th><th>Submission Date</th><th>Target Date</th><th>Lead</th><th>Actions</th></tr></thead>
+            <tbody id="subs-tbody"></tbody></table>
+            <div id="subs-empty" class="empty-state" style="display:none;"><div class="empty-icon">📋</div><h3>No submissions yet</h3><p>Click "+ Add New" to log your first submission.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div class="page" id="page-products">
+        <div class="panel" style="border:none;background:transparent;box-shadow:none;">
+          <div class="panel-header" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+            <div class="panel-title">Products</div>
+            <div class="panel-count" id="prod-panel-count">0 products</div>
+          </div>
+          <div class="filter-row" style="background:var(--surface);border:1px solid var(--border);border-top:none;">
+            <span class="filter-label">Filter:</span>
+            <select id="prod-filter-regstatus" class="filter-select" onchange="renderProducts()">
+              <option value="">All Registration Statuses</option>
+              <option>Registered</option><option>Pending Registration</option>
+              <option>Under Renewal</option><option>Expired</option>
+              <option>Cancelled</option><option>Not Registered</option>
+            </select>
+            <select id="prod-filter-country" class="filter-select" onchange="renderProducts()"><option value="">All Countries</option></select>
+            <button class="filter-clear" onclick="clearProdFilters()">✕ Clear</button>
+          </div>
+          <div id="product-grid" class="product-grid" style="background:transparent;padding:16px 0;"></div>
+          <div id="products-empty" class="empty-state" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:60px;">
+            <div class="empty-icon">⬡</div><h3>No products yet</h3><p>Click "+ Add New" to register your first product.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- WORKFLOWS -->
+      <div class="page" id="page-workflows">
+        <div class="workflow-board" id="wf-board"></div>
+        <div id="wf-empty" class="empty-state" style="display:none;padding:80px;">
+          <div class="empty-icon">⟳</div><h3>No workflows yet</h3><p>Click "+ Add New" to create your first workflow.</p>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="page" id="page-notifications">
+        <div class="panel" style="max-width:600px;">
+          <div class="panel-header">
+            <div class="panel-title">Email Notifications</div>
+            <div class="panel-count" id="notif-status-badge" style="background:var(--green-light);color:var(--green);border-color:var(--green-light);">Ready to configure</div>
+          </div>
+          <div style="padding:24px;">
+            <div style="background:var(--blue-light);border:1px solid rgba(28,78,138,.15);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:24px;font-size:13px;color:var(--blue);line-height:1.6;">
+              <strong>How it works:</strong> When you open the app, it checks for tasks and submissions with due dates within <strong>3 days</strong> and sends an alert email to the address below. To enable sending, connect EmailJS (free) — instructions appear after you save your email.
+            </div>
+            <div class="form-row" style="max-width:100%;">
+              <div class="form-group full">
+                <label>Notification Email Address</label>
+                <input type="text" id="notif-email" placeholder="e.g. nada@company.com" style="max-width:400px;">
+              </div>
+              <div class="form-group full">
+                <label>Also notify (second email, optional)</label>
+                <input type="text" id="notif-email2" placeholder="e.g. colleague@company.com" style="max-width:400px;">
+              </div>
+              <div class="form-group full" style="display:flex;align-items:center;gap:12px;">
+                <label style="margin:0;text-transform:none;font-size:13.5px;font-weight:500;letter-spacing:0;font-family:'DM Sans',sans-serif;">Enable email notifications</label>
+                <div id="notif-toggle" onclick="toggleNotif()" style="width:44px;height:24px;border-radius:20px;background:var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;">
+                  <div id="notif-thumb" style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveNotifSettings()" style="margin-top:8px;">Save Settings</button>
+          </div>
+        </div>
+
+        <!-- Upcoming alerts preview -->
+        <div class="panel" style="max-width:600px;">
+          <div class="panel-header">
+            <div class="panel-title">Upcoming Alerts (Next 3 Days)</div>
+          </div>
+          <div id="notif-preview-list"></div>
+        </div>
+
+        <!-- EmailJS setup guide (shown after saving email) -->
+        <div class="panel" id="emailjs-guide" style="max-width:600px;display:none;">
+          <div class="panel-header">
+            <div class="panel-title">Connect EmailJS (Free)</div>
+            <div class="panel-count" style="background:var(--gold-light);color:var(--gold);border-color:var(--gold-light);">Optional</div>
+          </div>
+          <div style="padding:24px;font-size:13.5px;line-height:1.8;color:var(--text-muted);">
+            <ol style="padding-left:20px;display:flex;flex-direction:column;gap:10px;">
+              <li>Go to <strong style="color:var(--text);">emailjs.com</strong> → sign up for free</li>
+              <li>Create an <strong style="color:var(--text);">Email Service</strong> (connect your Gmail or Outlook)</li>
+              <li>Create an <strong style="color:var(--text);">Email Template</strong> with variables: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;">{{to_email}}</code>, <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;">{{subject}}</code>, <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;">{{message}}</code></li>
+              <li>Copy your <strong style="color:var(--text);">Public Key</strong>, <strong style="color:var(--text);">Service ID</strong>, and <strong style="color:var(--text);">Template ID</strong></li>
+              <li>Paste them below and click Save</li>
+            </ol>
+            <div class="form-row" style="margin-top:20px;max-width:100%;">
+              <div class="form-group"><label>EmailJS Public Key</label><input type="text" id="ejs-pubkey" placeholder="user_xxxxxxxxxx"></div>
+              <div class="form-group"><label>Service ID</label><input type="text" id="ejs-service" placeholder="service_xxxxxx"></div>
+              <div class="form-group"><label>Template ID</label><input type="text" id="ejs-template" placeholder="template_xxxxxx"></div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveEmailJSConfig()">Save EmailJS Config</button>
+            <span id="ejs-saved" style="margin-left:12px;font-size:12px;color:var(--green);display:none;">✓ Saved!</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <div class="modal-header"><h2 id="task-modal-title">New Task</h2><button class="modal-close" onclick="closeModal('task-modal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="task-edit-id">
+      <div class="form-row">
+        <div class="form-group full"><label>Task Title *</label><input type="text" id="task-title" placeholder="e.g. Prepare dossier for submission"></div>
+        <div class="form-group full"><label>Description</label><textarea id="task-desc" placeholder="Describe what needs to be done, acceptance criteria, references…" style="min-height:70px;"></textarea></div>
+        <div class="form-group"><label>Priority</label><select id="task-priority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
+        <div class="form-group"><label>Status</label><select id="task-status"><option value="open">Open</option><option value="in-progress">In Progress</option><option value="blocked">Blocked</option><option value="done">Done</option></select></div>
+        <div class="form-group"><label>Assignee</label><input type="text" id="task-assignee" placeholder="Full name"></div>
+        <div class="form-group"><label>Due Date</label><input type="date" id="task-due"></div>
+        <div class="form-group"><label>Linked Submission</label><select id="task-sub-link"><option value="">— None —</option></select></div>
+        <div class="form-group"><label>Linked Product</label><select id="task-prod-link"><option value="">— None —</option></select></div>
+        <div class="form-group full"><label>Notes</label><textarea id="task-notes" placeholder="Additional context or instructions…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('task-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="task-save-btn" onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMISSION MODAL -->
+<div class="modal-overlay" id="sub-modal">
+  <div class="modal">
+    <div class="modal-header"><h2 id="sub-modal-title">New Submission</h2><button class="modal-close" onclick="closeModal('sub-modal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="sub-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>Submission ID *</label><input type="text" id="sub-id-field" placeholder="e.g. SUB-2024-001"></div>
+        <div class="form-group"><label>Type</label><select id="sub-type"><option>New Registration</option><option>Renewal</option><option>Variation</option><option>Appeal</option><option>Other</option></select></div>
+        <div class="form-group full"><label>Product Name *</label>
+          <input type="text" id="sub-product" placeholder="Product / Drug name" list="sub-product-list" autocomplete="off">
+          <datalist id="sub-product-list"></datalist>
+        </div>
+        <div class="form-group"><label>Status</label><select id="sub-status"><option value="preparation">In Preparation</option><option value="submitted">Submitted</option><option value="review">Under Review</option><option value="approved">Approved</option><option value="hold">On Hold / RTF</option><option value="withdrawn">Withdrawn</option></select></div>
+        <div class="form-group"><label>Submission Date</label><input type="date" id="sub-date"></div>
+        <div class="form-group"><label>Target / PDUFA Date</label><input type="date" id="sub-pdufa"></div>
+        <div class="form-group"><label>Regulatory Lead</label><input type="text" id="sub-lead" placeholder="Full name"></div>
+        <div class="form-group full"><label>Notes</label><textarea id="sub-notes" placeholder="Agency correspondence, special designations, etc."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('sub-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="sub-save-btn" onclick="saveSubmission()">Save Submission</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="modal-overlay" id="prod-modal">
+  <div class="modal">
+    <div class="modal-header"><h2 id="prod-modal-title">New Product</h2><button class="modal-close" onclick="closeModal('prod-modal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="prod-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>Product Name *</label><input type="text" id="prod-name" placeholder="Brand or generic name"></div>
+        <div class="form-group"><label>Internal ID</label><input type="text" id="prod-internal-id" placeholder="e.g. PRD-001"></div>
+        <div class="form-group"><label>Category</label><select id="prod-category"><option>Drug (Small Molecule)</option><option>Biologic</option><option>Medical Device (Class I)</option><option>Medical Device (Class II)</option><option>Medical Device (Class III)</option><option>Combination Product</option><option>Generic Drug</option><option>OTC Drug</option></select></div>
+        <div class="form-group"><label>Therapeutic Area</label><input type="text" id="prod-ta" placeholder="e.g. Oncology, Cardiology"></div>
+        <div class="form-group"><label>Development Phase</label><select id="prod-phase"><option>Preclinical</option><option>Phase I</option><option>Phase II</option><option>Phase III</option><option>Pre-Submission</option><option>Under Review</option><option>Approved / Marketed</option><option>Post-Market</option></select></div>
+        <div class="form-group"><label>Product Owner</label><input type="text" id="prod-owner" placeholder="Full name"></div>
+        <div class="form-group"><label>Registration Status</label><select id="prod-reg-status"><option value="">— Not Set —</option><option>Registered</option><option>Pending Registration</option><option>Under Renewal</option><option>Expired</option><option>Cancelled</option><option>Not Registered</option></select></div>
+        <div class="form-group"><label>Registration No.</label><input type="text" id="prod-reg-no" placeholder="e.g. REG-2023-00123"></div>
+        <div class="form-group"><label>Renewal Date</label><input type="date" id="prod-renewal-date"></div>
+        <div class="form-group"><label>Country of Origin</label><input type="text" id="prod-country" placeholder="e.g. Egypt, Germany, USA"></div>
+        <div class="form-group"><label>Reference / Non-Reference</label><select id="prod-ref-type"><option value="">— Not Set —</option><option>Reference</option><option>Non-Reference</option></select></div>
+        <div class="form-group full"><label>Description</label><textarea id="prod-desc" placeholder="Brief product description, indication, MOA…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('prod-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="prod-save-btn" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKFLOW MODAL -->
+<div class="modal-overlay" id="wf-modal">
+  <div class="modal" style="width:640px;">
+    <div class="modal-header"><h2 id="wf-modal-title">New Workflow</h2><button class="modal-close" onclick="closeModal('wf-modal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="wf-edit-id">
+      <div class="form-row">
+        <div class="form-group full"><label>Workflow Title *</label><input type="text" id="wf-title" placeholder="e.g. Gonapure Renewal Dossier 2026"></div>
+        <div class="form-group"><label>Stage</label>
+          <select id="wf-stage">
+            <option value="draft">Draft</option>
+            <option value="review">Under Review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="hold">On Hold</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Linked Product</label><select id="wf-prod-link"><option value="">— None —</option></select></div>
+        <div class="form-group"><label>Linked Submission</label><select id="wf-sub-link"><option value="">— None —</option></select></div>
+        <div class="form-group"><label>Responsible</label><input type="text" id="wf-responsible" placeholder="Full name"></div>
+        <div class="form-group"><label>Due Date</label><input type="date" id="wf-due"></div>
+        <div class="form-group full"><label>Description / Notes</label><textarea id="wf-notes" placeholder="Describe this workflow, objectives, requirements…"></textarea></div>
+        <div class="form-group full">
+          <label>Attach Files</label>
+          <div class="upload-zone" id="wf-upload-zone" onclick="document.getElementById('wf-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleFileDrop(event)">
+            <div class="upload-zone-text">📎 <strong>Click to browse</strong> or drag & drop files here</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Any file type · Max 50MB each</div>
+          </div>
+          <input type="file" id="wf-file-input" multiple style="display:none;" onchange="handleFileSelect(this.files)">
+          <div class="file-list" id="wf-file-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('wf-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="wf-save-btn" onclick="saveWorkflow()">Save Workflow</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toast-icon">✓</span><span id="toast-msg"></span></div>
+
+<script>
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://jpabaailxhqojdqxpflp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_t8AqEBzH_5DX8tR7_EaeLg_MygjBbaD';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let tasks = [], submissions = [], products = [];
+let currentPage = 'dashboard', taskFilter = 'all', subFilter = 'all';
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+const AC = ['#c0392b','#1a6b5e','#1c4e8a','#b8860b','#5c2d91','#c05800','#2d6a2d'];
+function aColor(n){let h=0;for(let c of(n||'?'))h=(h*31+c.charCodeAt(0))&0xffff;return AC[h%AC.length];}
+function ini(n){if(!n)return '?';return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();}
+function dueCls(d){if(!d)return '';const dd=new Date(d),now=new Date();now.setHours(0,0,0,0);const diff=(dd-now)/86400000;if(diff<0)return 'due-overdue';if(diff<=7)return 'due-soon';return 'due-ok';}
+function fmt(d){if(!d)return '—';const[y,m,dd]=d.split('-');const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${M[+m-1]} ${+dd}, ${y}`;}
+function tBadge(s){const m={'open':'badge-task-open','in-progress':'badge-task-inprogress','done':'badge-task-done','blocked':'badge-task-blocked'};const l={'open':'Open','in-progress':'In Progress','done':'Done','blocked':'Blocked'};return `<span class="badge ${m[s]||'badge-task-open'}"><span class="badge-dot"></span>${l[s]||s}</span>`;}
+function sBadge(s){const m={'submitted':'badge-submitted','review':'badge-review','approved':'badge-approved','preparation':'badge-preparation','hold':'badge-hold','withdrawn':'badge-withdrawn'};const l={'submitted':'Submitted','review':'Under Review','approved':'Approved','preparation':'In Prep','hold':'On Hold','withdrawn':'Withdrawn'};return `<span class="badge ${m[s]||'badge-preparation'}"><span class="badge-dot"></span>${l[s]||s}</span>`;}
+function pBadge(p){const m={high:'badge-high',medium:'badge-medium',low:'badge-low'};return `<span class="badge ${m[p]||'badge-medium'}">${p||'medium'}</span>`;}
+function setSyncStatus(s){const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-status');dot.className='sync-dot '+s;lbl.textContent=s==='online'?'Live sync on':s==='syncing'?'Saving…':'Connecting…';}
+
+// ── MAPPERS ──────────────────────────────────────────────────────────────────
+const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',notes:r.notes||''});
+const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',notes:r.notes||''});
+const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||''});
+
+// ── LOAD ─────────────────────────────────────────────────────────────────────
+async function loadAll() {
+  try {
+    const [t,s,p,w] = await Promise.all([
+      db.from('tasks').select('*').order('created_at',{ascending:false}),
+      db.from('submissions').select('*').order('created_at',{ascending:false}),
+      db.from('products').select('*').order('created_at',{ascending:false}),
+      db.from('workflows').select('*').order('created_at',{ascending:false}),
+    ]);
+    tasks=(t.data||[]).map(mT); submissions=(s.data||[]).map(mS); products=(p.data||[]).map(mP); workflows=(w.data||[]).map(mW);
+    setSyncStatus('online');
+    document.getElementById('loading-overlay').classList.add('hidden');
+    renderAll();
+  } catch(e) {
+    document.getElementById('loading-overlay').querySelector('p').textContent='Connection failed. Please check your internet and reload.';
+  }
+}
+
+function subscribeRealtime() {
+  db.channel('ra-realtime')
+    .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},async()=>{const{data}=await db.from('tasks').select('*').order('created_at',{ascending:false});tasks=(data||[]).map(mT);renderAll();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'submissions'},async()=>{const{data}=await db.from('submissions').select('*').order('created_at',{ascending:false});submissions=(data||[]).map(mS);renderAll();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'products'},async()=>{const{data}=await db.from('products').select('*').order('created_at',{ascending:false});products=(data||[]).map(mP);renderAll();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'workflows'},async()=>{const{data}=await db.from('workflows').select('*').order('created_at',{ascending:false});workflows=(data||[]).map(mW);renderAll();})
+    .subscribe();
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'}};
+const addLabels={dashboard:'Add Task',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:''};
+
+function navigate(page,el){
+  currentPage=page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('page-title').textContent=pageMeta[page].title;
+  document.getElementById('page-sub').textContent=pageMeta[page].sub;
+  document.getElementById('add-btn').textContent='＋ '+addLabels[page];
+  if(addLabels[page]==='') document.getElementById('add-btn').style.display='none'; else document.getElementById('add-btn').style.display='';
+  renderAll();
+  if(page==='notifications') applyNotifUI();
+}
+function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();}
+function setTaskFilter(f,el){taskFilter=f;document.querySelectorAll('#page-tasks .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks();}
+function setSubFilter(f,el){subFilter=f;document.querySelectorAll('#page-submissions .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderSubmissions();}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function renderAll(){renderDashboard();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();}
+function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;}
+
+function renderDashboard(){
+  const now=new Date();now.setHours(0,0,0,0);
+  const open=tasks.filter(t=>t.status!=='done');
+  const ov=open.filter(t=>t.due&&new Date(t.due)<now);
+  const active=submissions.filter(s=>!['approved','withdrawn'].includes(s.status));
+  const review=submissions.filter(s=>s.status==='review');
+  const tm=now.getMonth(),ty=now.getFullYear();
+  const dm=[...open.filter(t=>{if(!t.due)return false;const d=new Date(t.due);return d.getMonth()===tm&&d.getFullYear()===ty;}),
+            ...submissions.filter(s=>{const d=s.pdufa||s.date;if(!d)return false;const dd=new Date(d);return dd.getMonth()===tm&&dd.getFullYear()===ty;})];
+  document.getElementById('stat-open-tasks').textContent=open.length;
+  document.getElementById('stat-overdue-tasks').textContent=ov.length;
+  document.getElementById('stat-active-subs').textContent=active.length;
+  document.getElementById('stat-sub-review').textContent=review.length+' under review';
+  document.getElementById('stat-products').textContent=products.length;
+  document.getElementById('stat-due-month').textContent=dm.length;
+
+  const up=[...open.filter(t=>t.due).map(t=>({label:t.title,sub:'Task · '+(t.assignee||'Unassigned'),date:t.due})),
+            ...submissions.filter(s=>s.pdufa).map(s=>({label:s.id+' — '+s.product,sub:s.type+' Target',date:s.pdufa}))]
+    .sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,6);
+  const ul=document.getElementById('upcoming-list');
+  ul.innerHTML=up.length?up.map(u=>{const d=new Date(u.date);const mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];const cls=dueCls(u.date);const ov=cls==='due-overdue';return `<div class="upcoming-item"><div class="upcoming-date-box" style="${ov?'background:var(--accent-light);color:var(--accent)':''}"><div class="day">${d.getDate()}</div><div class="mon">${mon}</div></div><div class="upcoming-info"><div class="upcoming-title">${u.label}</div><div class="upcoming-sub">${u.sub}</div></div><span class="due-date ${cls}" style="font-size:11px;">${ov?'OVERDUE':(cls==='due-soon'?'SOON':fmt(u.date))}</span></div>`;}).join(''):`<div class="empty-state"><div class="empty-icon">📅</div><h3>No upcoming deadlines</h3></div>`;
+
+  const acts=[];
+  if(ov.length)acts.push({icon:'🔴',title:ov.length+' overdue task'+(ov.length>1?'s':''),sub:ov.map(t=>t.title).slice(0,2).join(', ')});
+  const hi=open.filter(t=>t.priority==='high');
+  if(hi.length)acts.push({icon:'⚡',title:hi.length+' high-priority task'+(hi.length>1?'s':'')+' open',sub:hi.map(t=>t.title).slice(0,2).join(', ')});
+  review.forEach(s=>{if(s.pdufa){const diff=(new Date(s.pdufa)-now)/86400000;if(diff<=30)acts.push({icon:'📋',title:s.id+' target date in '+Math.max(0,Math.ceil(diff))+' days',sub:s.product+' · '+s.type});}});
+  products.forEach(p=>{if(p.renewalDate){const diff=(new Date(p.renewalDate)-now)/86400000;if(diff<=60&&diff>=0)acts.push({icon:'🔖',title:p.name+' renewal due in '+Math.ceil(diff)+' days',sub:'Reg: '+(p.regNo||'N/A')});if(diff<0)acts.push({icon:'🚨',title:p.name+' registration EXPIRED',sub:'Was due '+fmt(p.renewalDate)});}});
+  const al=document.getElementById('action-list');
+  al.innerHTML=acts.length?acts.map(a=>`<div class="action-needed"><div class="action-icon">${a.icon}</div><div><div class="action-title">${a.title}</div><div class="action-sub">${a.sub}</div></div></div>`).join(''):`<div class="empty-state"><div class="empty-icon">✅</div><h3>All caught up!</h3></div>`;
+}
+
+function populateTaskFilterDropdowns(){
+  const prodSel=document.getElementById('task-filter-product');
+  if(!prodSel)return;
+  const cur=prodSel.value;
+  prodSel.innerHTML='<option value="">All Products</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  prodSel.value=cur;
+}
+function clearTaskFilters(){
+  document.getElementById('task-filter-product').value='';
+  document.getElementById('task-filter-due-from').value='';
+  document.getElementById('task-filter-due-to').value='';
+  renderTasks();
+}
+function renderTasks(){
+  populateTaskFilterDropdowns();
+  const sort=document.getElementById('task-sort').value;
+  const fprod=document.getElementById('task-filter-product').value;
+  const ffrom=document.getElementById('task-filter-due-from').value;
+  const fto=document.getElementById('task-filter-due-to').value;
+  let f=taskFilter==='all'?[...tasks]:tasks.filter(t=>t.status===taskFilter);
+  if(fprod) f=f.filter(t=>t.prodLink===fprod);
+  if(ffrom) f=f.filter(t=>t.due&&t.due>=ffrom);
+  if(fto) f=f.filter(t=>t.due&&t.due<=fto);
+  if(sort==='due')f.sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);});
+  else if(sort==='priority'){const o={high:0,medium:1,low:2};f.sort((a,b)=>(o[a.priority]||1)-(o[b.priority]||1));}
+  else f.sort((a,b)=>a.status.localeCompare(b.status));
+  const tb=document.getElementById('tasks-tbody'),em=document.getElementById('tasks-empty');
+  document.getElementById('task-panel-count').textContent=tasks.length+' task'+(tasks.length!==1?'s':'');
+  if(!f.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';
+  tb.innerHTML=f.map(t=>{
+    const ls=submissions.find(s=>s.id===t.subLink),lp=products.find(p=>p.id===t.prodLink);
+    return `<tr><td><div style="font-weight:500;">${t.title}</div>${t.desc?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${t.desc.substring(0,80)}${t.desc.length>80?'…':''}</div>`:''}</td><td>${pBadge(t.priority)}</td><td>${tBadge(t.status)}</td><td><div class="assignee">${t.assignee?`<div class="avatar" style="background:${aColor(t.assignee)}">${ini(t.assignee)}</div><span>${t.assignee}</span>`:'<span style="color:var(--text-muted)">—</span>'}</div></td><td><span class="due-date ${dueCls(t.due)}">${fmt(t.due)}</span></td><td>${ls?`<span class="type-pill">${ls.id}</span>`:''} ${lp?`<span style="font-size:12px;color:var(--text-muted)">📦 ${lp.name}</span>`:''}${!ls&&!lp?'<span style="color:var(--text-muted)">—</span>':''}</td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editTask('${t.id}')">Edit</button><button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="deleteTask('${t.id}')">Del</button></div></td></tr>`;
+  }).join('');
+}
+
+function populateSubFilterDropdowns(){
+  const prodSel=document.getElementById('sub-filter-product');
+  if(!prodSel)return;
+  const cur=prodSel.value;
+  prodSel.innerHTML='<option value="">All Products</option>'+[...new Set(submissions.map(s=>s.product))].filter(Boolean).map(p=>`<option value="${p}">${p}</option>`).join('');
+  prodSel.value=cur;
+}
+function clearSubFilters(){
+  document.getElementById('sub-filter-status').value='';
+  document.getElementById('sub-filter-product').value='';
+  document.getElementById('sub-filter-target-from').value='';
+  document.getElementById('sub-filter-target-to').value='';
+  renderSubmissions();
+}
+function renderSubmissions(){
+  populateSubFilterDropdowns();
+  const fstatus=document.getElementById('sub-filter-status').value;
+  const fprod=document.getElementById('sub-filter-product').value;
+  const ffrom=document.getElementById('sub-filter-target-from').value;
+  const fto=document.getElementById('sub-filter-target-to').value;
+  let f=subFilter==='all'?[...submissions]:submissions.filter(s=>s.type===subFilter);
+  if(fstatus) f=f.filter(s=>s.status===fstatus);
+  if(fprod) f=f.filter(s=>s.product===fprod);
+  if(ffrom) f=f.filter(s=>s.pdufa&&s.pdufa>=ffrom);
+  if(fto) f=f.filter(s=>s.pdufa&&s.pdufa<=fto);
+  const tb=document.getElementById('subs-tbody'),em=document.getElementById('subs-empty');
+  document.getElementById('sub-panel-count').textContent=submissions.length+' submission'+(submissions.length!==1?'s':'');
+  if(!f.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';
+  tb.innerHTML=f.map(s=>`<tr><td><span style="font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;">${s.id}</span></td><td><span style="font-weight:500;">${s.product}</span></td><td><span class="type-pill">${s.type}</span></td><td>${sBadge(s.status)}</td><td><span class="due-date due-ok">${fmt(s.date)}</span></td><td><span class="due-date ${dueCls(s.pdufa)}">${fmt(s.pdufa)}</span></td><td><div class="assignee">${s.lead?`<div class="avatar" style="background:${aColor(s.lead)};width:22px;height:22px;font-size:9px;">${ini(s.lead)}</div><span>${s.lead}</span>`:'<span style="color:var(--text-muted)">—</span>'}</div></td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editSub('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="deleteSub('${s.id}')">Del</button></div></td></tr>`).join('');
+}
+
+function populateProdFilterDropdowns(){
+  const cSel=document.getElementById('prod-filter-country');
+  if(!cSel)return;
+  const cur=cSel.value;
+  const countries=[...new Set(products.map(p=>p.country).filter(Boolean))];
+  cSel.innerHTML='<option value="">All Countries</option>'+countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+  cSel.value=cur;
+}
+function clearProdFilters(){
+  document.getElementById('prod-filter-regstatus').value='';
+  document.getElementById('prod-filter-country').value='';
+  renderProducts();
+}
+function renderProducts(){
+  populateProdFilterDropdowns();
+  const frs=document.getElementById('prod-filter-regstatus').value;
+  const fc=document.getElementById('prod-filter-country').value;
+  const g=document.getElementById('product-grid'),em=document.getElementById('products-empty');
+  let filtered=products;
+  if(frs) filtered=filtered.filter(p=>p.regStatus===frs);
+  if(fc) filtered=filtered.filter(p=>p.country===fc);
+  document.getElementById('prod-panel-count').textContent=filtered.length+' of '+products.length+' product'+(products.length!==1?'s':'');
+  if(!filtered.length){g.innerHTML='';em.style.display='block';return;}em.style.display='none';
+  const now=new Date();now.setHours(0,0,0,0);
+  const rc=s=>{const m={'Registered':'color:var(--green);','Expired':'color:var(--accent);','Cancelled':'color:var(--accent);','Under Renewal':'color:var(--orange);','Pending Registration':'color:var(--blue);'};return m[s]||'color:var(--text-muted);';};
+  g.innerHTML=filtered.map(p=>{
+    const ps=submissions.filter(s=>s.product===p.name);
+    const pt=tasks.filter(t=>t.prodLink===p.id&&t.status!=='done');
+    const rw=p.renewalDate&&(new Date(p.renewalDate)-now)/86400000<=60;
+    return `<div class="product-card"><div class="product-card-header"><div><div class="product-name">${p.name}</div><div class="product-id">${p.internalId||p.id.slice(0,8).toUpperCase()}</div></div><button class="btn btn-ghost btn-sm" onclick="editProd('${p.id}')" style="padding:4px 8px;font-size:11px;">Edit</button><button class="btn btn-ghost btn-sm" onclick="deleteProd('${p.id}')" style="padding:4px 8px;font-size:11px;color:var(--accent);">Del</button></div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${p.category?`<span class="type-pill" style="font-size:10px;">${p.category.split('(')[0].trim()}</span>`:''}${p.ta?`<span class="type-pill" style="font-size:10px;background:var(--teal-light);color:var(--teal);border-color:rgba(26,107,94,.15);">${p.ta}</span>`:''}${p.regStatus?`<span class="type-pill" style="font-size:10px;background:var(--surface2);border-color:var(--border);${rc(p.regStatus)}">${p.regStatus}</span>`:''}</div>
+    <div class="product-meta">${p.regNo?`<div>🔖 Reg. No: <strong>${p.regNo}</strong></div>`:''}${p.renewalDate?`<div style="${rw?'color:var(--orange);font-weight:600;':''}">🗓 Renewal: ${fmt(p.renewalDate)}${rw?' ⚠️':''}</div>`:''}<div>📋 ${ps.length} submission${ps.length!==1?'s':''} · ✓ ${pt.length} open task${pt.length!==1?'s':''}</div><div>Phase: <strong>${p.phase||'—'}</strong></div>${p.country?`<div>🌍 Origin: <strong>${p.country}</strong></div>`:''}${p.refType?`<div>📌 <strong>${p.refType}</strong></div>`:''}${p.owner?`<div>Owner: ${p.owner}</div>`:''}</div>
+    ${ps.length?`<div class="product-subs">${ps.slice(0,3).map(s=>`<span class="badge ${sBadge(s.status).match(/badge-[a-z]+/)?.[0]||''}" style="font-size:10.5px;padding:2px 8px;">${s.id}</span>`).join('')}</div>`:''}</div>`;
+  }).join('');
+}
+
+// ── TASK CRUD ────────────────────────────────────────────────────────────────
+function populateSelects(){
+  document.getElementById('task-sub-link').innerHTML='<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  document.getElementById('task-prod-link').innerHTML='<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+}
+function openTaskModal(id){
+  populateSelects();
+  document.getElementById('task-modal-title').textContent=id?'Edit Task':'New Task';
+  document.getElementById('task-edit-id').value=id||'';
+  if(id){const t=tasks.find(t=>t.id===id);document.getElementById('task-title').value=t.title;document.getElementById('task-desc').value=t.desc||'';document.getElementById('task-priority').value=t.priority;document.getElementById('task-status').value=t.status;document.getElementById('task-assignee').value=t.assignee;document.getElementById('task-due').value=t.due;document.getElementById('task-sub-link').value=t.subLink||'';document.getElementById('task-prod-link').value=t.prodLink||'';document.getElementById('task-notes').value=t.notes||'';}
+  else{['task-title','task-desc','task-assignee','task-due','task-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('task-priority').value='medium';document.getElementById('task-status').value='open';document.getElementById('task-sub-link').value='';document.getElementById('task-prod-link').value='';}
+  document.getElementById('task-modal').classList.add('open');
+}
+async function saveTask(){
+  const title=document.getElementById('task-title').value.trim();
+  if(!title){alert('Task title is required.');return;}
+  const btn=document.getElementById('task-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
+  const editId=document.getElementById('task-edit-id').value;
+  const id=editId||uid();
+  const row={id,title,description:document.getElementById('task-desc').value.trim(),priority:document.getElementById('task-priority').value,status:document.getElementById('task-status').value,assignee:document.getElementById('task-assignee').value.trim(),due_date:document.getElementById('task-due').value||null,sub_link:document.getElementById('task-sub-link').value||null,prod_link:document.getElementById('task-prod-link').value||null,notes:document.getElementById('task-notes').value.trim()};
+  const{error}=editId?await db.from('tasks').update(row).eq('id',editId):await db.from('tasks').insert(row);
+  btn.disabled=false;btn.textContent='Save Task';
+  if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
+  closeModal('task-modal');showToast('✓',editId?'Task updated':'Task added');setSyncStatus('online');
+}
+function editTask(id){openTaskModal(id);}
+async function deleteTask(id){if(!confirm('Delete this task?'))return;setSyncStatus('syncing');await db.from('tasks').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Task deleted');}
+
+// ── SUBMISSION CRUD ──────────────────────────────────────────────────────────
+function populateProductDatalist(){
+  const dl = document.getElementById('sub-product-list');
+  if(!dl) return;
+  dl.innerHTML = products.map(p=>`<option value="${p.name}">`).join('');
+}
+function openSubModal(id){
+  populateProductDatalist();
+  document.getElementById('sub-modal-title').textContent=id?'Edit Submission':'New Submission';
+  document.getElementById('sub-edit-id').value=id||'';
+  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-notes').value=s.notes||'';}
+  else{['sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';}
+  document.getElementById('sub-modal').classList.add('open');
+}
+async function saveSubmission(){
+  const subId=document.getElementById('sub-id-field').value.trim(),product=document.getElementById('sub-product').value.trim();
+  if(!subId||!product){alert('Submission ID and Product are required.');return;}
+  const btn=document.getElementById('sub-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
+  const editId=document.getElementById('sub-edit-id').value;
+  const row={id:subId,product,type:document.getElementById('sub-type').value,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),notes:document.getElementById('sub-notes').value.trim()};
+  const{error}=editId?await db.from('submissions').update(row).eq('id',editId):await db.from('submissions').insert(row);
+  btn.disabled=false;btn.textContent='Save Submission';
+  if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
+  closeModal('sub-modal');showToast('✓',editId?'Submission updated':'Submission added');setSyncStatus('online');
+}
+function editSub(id){openSubModal(id);}
+async function deleteSub(id){if(!confirm('Delete this submission?'))return;setSyncStatus('syncing');await db.from('submissions').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Submission deleted');}
+
+// ── PRODUCT CRUD ─────────────────────────────────────────────────────────────
+function openProdModal(id){
+  document.getElementById('prod-modal-title').textContent=id?'Edit Product':'New Product';
+  document.getElementById('prod-edit-id').value=id||'';
+  if(id){const p=products.find(p=>p.id===id);document.getElementById('prod-name').value=p.name;document.getElementById('prod-internal-id').value=p.internalId||'';document.getElementById('prod-category').value=p.category||'Drug (Small Molecule)';document.getElementById('prod-ta').value=p.ta||'';document.getElementById('prod-phase').value=p.phase||'Preclinical';document.getElementById('prod-owner').value=p.owner||'';document.getElementById('prod-reg-status').value=p.regStatus||'';document.getElementById('prod-reg-no').value=p.regNo||'';document.getElementById('prod-renewal-date').value=p.renewalDate||'';document.getElementById('prod-country').value=p.country||'';document.getElementById('prod-ref-type').value=p.refType||'';document.getElementById('prod-desc').value=p.desc||'';}
+  else{['prod-name','prod-internal-id','prod-ta','prod-owner','prod-reg-no','prod-renewal-date','prod-country','prod-desc'].forEach(f=>document.getElementById(f).value='');document.getElementById('prod-reg-status').value='';document.getElementById('prod-ref-type').value='';document.getElementById('prod-category').value='Drug (Small Molecule)';document.getElementById('prod-phase').value='Preclinical';}
+  document.getElementById('prod-modal').classList.add('open');
+}
+async function saveProduct(){
+  const name=document.getElementById('prod-name').value.trim();
+  if(!name){alert('Product name is required.');return;}
+  const btn=document.getElementById('prod-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
+  const editId=document.getElementById('prod-edit-id').value;
+  const id=editId||uid();
+  const row={id,name,internal_id:document.getElementById('prod-internal-id').value.trim(),category:document.getElementById('prod-category').value,therapeutic_area:document.getElementById('prod-ta').value.trim(),phase:document.getElementById('prod-phase').value,owner:document.getElementById('prod-owner').value.trim(),reg_status:document.getElementById('prod-reg-status').value||null,reg_no:document.getElementById('prod-reg-no').value.trim(),renewal_date:document.getElementById('prod-renewal-date').value||null,country:document.getElementById('prod-country').value.trim()||null,ref_type:document.getElementById('prod-ref-type').value||null,description:document.getElementById('prod-desc').value.trim()};
+  const{error}=editId?await db.from('products').update(row).eq('id',editId):await db.from('products').insert(row);
+  btn.disabled=false;btn.textContent='Save Product';
+  if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
+  closeModal('prod-modal');showToast('✓',editId?'Product updated':'Product added');setSyncStatus('online');
+}
+function editProd(id){openProdModal(id);}
+async function deleteProd(id){if(!confirm('Delete this product?'))return;setSyncStatus('syncing');await db.from('products').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Product deleted');}
+
+// ── WORKFLOW ─────────────────────────────────────────────────────────────────
+let workflows = [];
+let wfPendingFiles = []; // {file, name, size} objects pending upload
+
+const WF_STAGES = [
+  {key:'draft',   label:'Draft',        cls:'wf-stage-draft'},
+  {key:'review',  label:'Under Review', cls:'wf-stage-review'},
+  {key:'approved',label:'Approved',     cls:'wf-stage-approved'},
+  {key:'rejected',label:'Rejected',     cls:'wf-stage-rejected'},
+  {key:'hold',    label:'On Hold',      cls:'wf-stage-hold'},
+];
+
+const mW = r => ({
+  id:r.id, title:r.title, stage:r.stage||'draft',
+  prodLink:r.prod_link||'', subLink:r.sub_link||'',
+  responsible:r.responsible||'', due:r.due_date||'',
+  notes:r.notes||'', files:r.files||[]
+});
+
+async function loadWorkflows(){
+  const {data} = await db.from('workflows').select('*').order('created_at',{ascending:false});
+  workflows = (data||[]).map(mW);
+}
+
+function renderWorkflows(){
+  const board = document.getElementById('wf-board');
+  const empty = document.getElementById('wf-empty');
+  if(!board) return;
+  if(!workflows.length){ board.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  board.innerHTML = WF_STAGES.map(stage => {
+    const cards = workflows.filter(w=>w.stage===stage.key);
+    return `<div class="wf-col">
+      <div class="wf-col-header">
+        <span class="wf-col-title" style="${stage.key==='draft'?'color:var(--blue)':stage.key==='review'?'color:var(--gold)':stage.key==='approved'?'color:var(--green)':stage.key==='rejected'?'color:var(--accent)':'color:var(--orange)'}">${stage.label}</span>
+        <span class="wf-col-count">${cards.length}</span>
+      </div>
+      ${cards.map(w=>{
+        const lp=products.find(p=>p.id===w.prodLink);
+        const ls=submissions.find(s=>s.id===w.subLink);
+        return `<div class="wf-card ${stage.cls}" onclick="editWorkflow('${w.id}')">
+          <div class="wf-card-title">${w.title}</div>
+          <div class="wf-card-meta">
+            ${lp?`<div>📦 ${lp.name}</div>`:''}
+            ${ls?`<div>📋 ${ls.id}</div>`:''}
+            ${w.responsible?`<div>👤 ${w.responsible}</div>`:''}
+            ${w.due?`<div class="due-date ${dueCls(w.due)}">📅 ${fmt(w.due)}</div>`:''}
+          </div>
+          ${w.files&&w.files.length?`<div class="wf-card-files">${w.files.map(f=>`<a class="wf-file-chip" href="${f.url}" target="_blank" onclick="event.stopPropagation()">📎 ${f.name}</a>`).join('')}</div>`:''}
+          <div style="display:flex;justify-content:flex-end;margin-top:8px;"><button class="btn btn-ghost btn-sm" style="color:var(--accent);font-size:11px;" onclick="event.stopPropagation();deleteWorkflow('${w.id}')">Del</button></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+function openWfModal(id){
+  wfPendingFiles = [];
+  document.getElementById('wf-file-list').innerHTML = '';
+  document.getElementById('wf-modal-title').textContent = id ? 'Edit Workflow' : 'New Workflow';
+  document.getElementById('wf-edit-id').value = id||'';
+  // Populate selects
+  document.getElementById('wf-prod-link').innerHTML='<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('wf-sub-link').innerHTML='<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  if(id){
+    const w=workflows.find(w=>w.id===id);
+    document.getElementById('wf-title').value=w.title;
+    document.getElementById('wf-stage').value=w.stage;
+    document.getElementById('wf-prod-link').value=w.prodLink||'';
+    document.getElementById('wf-sub-link').value=w.subLink||'';
+    document.getElementById('wf-responsible').value=w.responsible||'';
+    document.getElementById('wf-due').value=w.due||'';
+    document.getElementById('wf-notes').value=w.notes||'';
+    // Show existing files
+    if(w.files&&w.files.length){
+      document.getElementById('wf-file-list').innerHTML=w.files.map(f=>`<div class="file-item"><span style="font-size:14px;">📎</span><span class="file-item-name">${f.name}</span><a href="${f.url}" target="_blank" style="font-size:11px;color:var(--blue);">View</a></div>`).join('');
+    }
+  } else {
+    ['wf-title','wf-responsible','wf-due','wf-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('wf-stage').value='draft';
+    document.getElementById('wf-prod-link').value='';
+    document.getElementById('wf-sub-link').value='';
+  }
+  document.getElementById('wf-modal').classList.add('open');
+}
+
+function editWorkflow(id){ openWfModal(id); }
+
+function handleFileSelect(files){ for(const f of files) addPendingFile(f); }
+function handleFileDrop(e){
+  e.preventDefault();
+  document.getElementById('wf-upload-zone').classList.remove('dragover');
+  for(const f of e.dataTransfer.files) addPendingFile(f);
+}
+function addPendingFile(file){
+  wfPendingFiles.push(file);
+  const list = document.getElementById('wf-file-list');
+  const size = file.size>1048576?(file.size/1048576).toFixed(1)+' MB':(file.size/1024).toFixed(0)+' KB';
+  const idx = wfPendingFiles.length-1;
+  const div = document.createElement('div'); div.className='file-item'; div.id='pf-'+idx;
+  div.innerHTML=`<span style="font-size:14px;">📎</span><span class="file-item-name">${file.name}</span><span class="file-item-size">${size}</span><button class="file-del" onclick="removePendingFile(${idx})">×</button>`;
+  list.appendChild(div);
+}
+function removePendingFile(idx){ wfPendingFiles[idx]=null; const el=document.getElementById('pf-'+idx); if(el)el.remove(); }
+
+// ── CLOUDINARY CONFIG ────────────────────────────────────────────────────────
+const CLOUDINARY_CLOUD = 'dclpxwt8a';
+const CLOUDINARY_PRESET = 'ra_uploads';
+
+async function uploadFiles(wfId){
+  const uploaded = [];
+  for(const file of wfPendingFiles){
+    if(!file) continue;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_PRESET);
+      formData.append('folder', 'ra-command/'+wfId);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if(data.error){ showToast('❌','Upload failed: '+data.error.message); console.error('Cloudinary error:', data.error); continue; }
+      uploaded.push({name:file.name, url:data.secure_url, public_id:data.public_id});
+    } catch(e) {
+      showToast('❌','Upload failed: '+e.message);
+      console.error('Upload exception:', e);
+    }
+  }
+  return uploaded;
+}
+
+async function saveWorkflow(){
+  const title = document.getElementById('wf-title').value.trim();
+  if(!title){ alert('Workflow title is required.'); return; }
+  const btn=document.getElementById('wf-save-btn'); btn.disabled=true; btn.textContent='Saving…'; setSyncStatus('syncing');
+  const editId = document.getElementById('wf-edit-id').value;
+  const id = editId||uid();
+  // Upload new files
+  btn.textContent = wfPendingFiles.filter(f=>f).length ? 'Uploading files…' : 'Saving…';
+  const newFiles = await uploadFiles(id);
+  console.log('Uploaded files:', JSON.stringify(newFiles));
+  // Merge with existing files if editing
+  let allFiles = newFiles;
+  if(editId){
+    const existing = workflows.find(w=>w.id===editId);
+    if(existing) allFiles = [...(existing.files||[]), ...newFiles];
+  }
+  console.log('All files to save:', JSON.stringify(allFiles));
+  const row = {
+    id, title,
+    stage: document.getElementById('wf-stage').value,
+    prod_link: document.getElementById('wf-prod-link').value||null,
+    sub_link: document.getElementById('wf-sub-link').value||null,
+    responsible: document.getElementById('wf-responsible').value.trim(),
+    due_date: document.getElementById('wf-due').value||null,
+    notes: document.getElementById('wf-notes').value.trim(),
+    files: allFiles
+  };
+  const {error} = editId ? await db.from('workflows').update(row).eq('id',editId) : await db.from('workflows').insert(row);
+  btn.disabled=false; btn.textContent='Save Workflow';
+  if(error){ showToast('❌','Save failed: '+error.message); setSyncStatus('online'); return; }
+  if(allFiles.length === 0 && wfPendingFiles.filter(f=>f).length > 0){
+    showToast('⚠️','Workflow saved but file upload failed. Check Supabase Storage.');
+  } else {
+    showToast('✓', editId?'Workflow updated':'Workflow added');
+  }
+  await loadWorkflows();
+  closeModal('wf-modal'); renderWorkflows(); updateBadges(); setSyncStatus('online');
+}
+
+async function deleteWorkflow(id){
+  if(!confirm('Delete this workflow?')) return;
+  setSyncStatus('syncing');
+  await db.from('workflows').delete().eq('id',id);
+  await loadWorkflows(); renderWorkflows(); updateBadges();
+  setSyncStatus('online'); showToast('🗑','Workflow deleted');
+}
+
+// ── MODAL/TOAST ──────────────────────────────────────────────────────────────
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+let tt;
+function showToast(icon,msg){const t=document.getElementById('toast');document.getElementById('toast-icon').textContent=icon;document.getElementById('toast-msg').textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600);}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+let notifEnabled = localStorage.getItem('ra_notif_on') === 'true';
+let notifEmail = localStorage.getItem('ra_notif_email') || '';
+let notifEmail2 = localStorage.getItem('ra_notif_email2') || '';
+let ejsPubKey = localStorage.getItem('ra_ejs_pubkey') || '';
+let ejsService = localStorage.getItem('ra_ejs_service') || '';
+let ejsTemplate = localStorage.getItem('ra_ejs_template') || '';
+
+function toggleNotif(){
+  notifEnabled = !notifEnabled;
+  const tog = document.getElementById('notif-toggle');
+  const thumb = document.getElementById('notif-thumb');
+  tog.style.background = notifEnabled ? 'var(--teal)' : 'var(--border)';
+  thumb.style.left = notifEnabled ? '22px' : '2px';
+}
+
+function applyNotifUI(){
+  const tog = document.getElementById('notif-toggle');
+  const thumb = document.getElementById('notif-thumb');
+  if(!tog) return;
+  tog.style.background = notifEnabled ? 'var(--teal)' : 'var(--border)';
+  thumb.style.left = notifEnabled ? '22px' : '2px';
+  document.getElementById('notif-email').value = notifEmail;
+  document.getElementById('notif-email2').value = notifEmail2;
+  document.getElementById('ejs-pubkey').value = ejsPubKey;
+  document.getElementById('ejs-service').value = ejsService;
+  document.getElementById('ejs-template').value = ejsTemplate;
+  if(notifEmail) document.getElementById('emailjs-guide').style.display = 'block';
+  renderNotifPreview();
+}
+
+function saveNotifSettings(){
+  notifEmail = document.getElementById('notif-email').value.trim();
+  notifEmail2 = document.getElementById('notif-email2').value.trim();
+  localStorage.setItem('ra_notif_on', notifEnabled);
+  localStorage.setItem('ra_notif_email', notifEmail);
+  localStorage.setItem('ra_notif_email2', notifEmail2);
+  if(notifEmail) document.getElementById('emailjs-guide').style.display = 'block';
+  const badge = document.getElementById('notif-status-badge');
+  badge.textContent = notifEnabled && notifEmail ? '🔔 Active' : 'Disabled';
+  badge.style.background = notifEnabled && notifEmail ? 'var(--green-light)' : 'var(--surface2)';
+  badge.style.color = notifEnabled && notifEmail ? 'var(--green)' : 'var(--text-muted)';
+  showToast('✓', 'Notification settings saved');
+  renderNotifPreview();
+}
+
+function saveEmailJSConfig(){
+  ejsPubKey = document.getElementById('ejs-pubkey').value.trim();
+  ejsService = document.getElementById('ejs-service').value.trim();
+  ejsTemplate = document.getElementById('ejs-template').value.trim();
+  localStorage.setItem('ra_ejs_pubkey', ejsPubKey);
+  localStorage.setItem('ra_ejs_service', ejsService);
+  localStorage.setItem('ra_ejs_template', ejsTemplate);
+  document.getElementById('ejs-saved').style.display = 'inline';
+  setTimeout(() => document.getElementById('ejs-saved').style.display = 'none', 2000);
+  showToast('✓', 'EmailJS config saved');
+}
+
+function getAlerts(){
+  const now = new Date(); now.setHours(0,0,0,0);
+  const alerts = [];
+  tasks.filter(t=>t.status!=='done'&&t.due).forEach(t=>{
+    const diff = (new Date(t.due)-now)/86400000;
+    if(diff>=0&&diff<=3) alerts.push({type:'task',icon:'✓',label:t.title,due:t.due,diff:Math.ceil(diff),assignee:t.assignee});
+    if(diff<0) alerts.push({type:'task',icon:'🔴',label:t.title,due:t.due,diff:Math.ceil(diff),assignee:t.assignee,overdue:true});
+  });
+  submissions.filter(s=>s.pdufa).forEach(s=>{
+    const diff = (new Date(s.pdufa)-now)/86400000;
+    if(diff>=0&&diff<=3) alerts.push({type:'submission',icon:'📋',label:s.id+' — '+s.product,due:s.pdufa,diff:Math.ceil(diff)});
+    if(diff<0) alerts.push({type:'submission',icon:'🔴',label:s.id+' — '+s.product,due:s.pdufa,diff:Math.ceil(diff),overdue:true});
+  });
+  products.filter(p=>p.renewalDate).forEach(p=>{
+    const diff = (new Date(p.renewalDate)-now)/86400000;
+    if(diff>=0&&diff<=3) alerts.push({type:'product',icon:'🔖',label:p.name+' renewal',due:p.renewalDate,diff:Math.ceil(diff)});
+    if(diff<0) alerts.push({type:'product',icon:'🚨',label:p.name+' renewal EXPIRED',due:p.renewalDate,diff:Math.ceil(diff),overdue:true});
+  });
+  return alerts.sort((a,b)=>a.diff-b.diff);
+}
+
+function renderNotifPreview(){
+  const el = document.getElementById('notif-preview-list');
+  if(!el) return;
+  const alerts = getAlerts();
+  if(!alerts.length){
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><h3>Nothing due in the next 3 days</h3><p>You are all clear!</p></div>';
+    return;
+  }
+  el.innerHTML = alerts.map(a=>`
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:1px solid var(--border);">
+      <span style="font-size:18px;">${a.icon}</span>
+      <div style="flex:1;">
+        <div style="font-weight:500;font-size:13.5px;">${a.label}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Due: ${fmt(a.due)} · ${a.overdue?'<span style="color:var(--accent);font-weight:600;">OVERDUE</span>':(a.diff===0?'<span style="color:var(--orange);font-weight:600;">Today</span>':`In ${a.diff} day${a.diff>1?'s':''}`)}</div>
+      </div>
+      <span class="type-pill" style="font-size:10px;text-transform:capitalize;">${a.type}</span>
+    </div>`).join('');
+}
+
+async function sendNotificationEmails(){
+  if(!notifEnabled || !notifEmail) return;
+  if(!ejsPubKey || !ejsService || !ejsTemplate) return; // EmailJS not configured yet
+  const alerts = getAlerts();
+  if(!alerts.length) return;
+  const lastSent = localStorage.getItem('ra_notif_last_sent');
+  const today = new Date().toDateString();
+  if(lastSent === today) return; // Only send once per day
+  const subject = 'RA Command — ' + alerts.length + ' item(s) due within 3 days';
+  const lines = alerts.map(a=>`• ${a.label} — Due: ${fmt(a.due)} (${a.overdue?'OVERDUE':(a.diff===0?'Today':'In '+a.diff+' day'+(a.diff>1?'s':''))})`);
+  const message = 'The following items require your attention:\n\n' + lines.join('\n') + '\n\n— RA Command';
+  try {
+    // Load EmailJS SDK dynamically
+    if(!window.emailjs){
+      await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+      emailjs.init(ejsPubKey);
+    }
+    const emails = [notifEmail, notifEmail2].filter(Boolean);
+    for(const email of emails){
+      await emailjs.send(ejsService, ejsTemplate, {to_email: email, subject, message});
+    }
+    localStorage.setItem('ra_notif_last_sent', today);
+    showToast('📧', 'Notification emails sent!');
+  } catch(e) {
+    console.error('EmailJS error:', e);
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+// ── SIMPLE AUTH ──────────────────────────────────────────────────────────────
+const USERS = {
+  'nada.youssef@dafholding.com':       { password: 'DAF@2026', name: 'Nada Youssef' },
+  'nesreen.abdelfattah@dafholding.com':{ password: 'DAF@2026', name: 'Nesreen Abdel Fattah' },
+};
+
+function getSession(){ try{ return JSON.parse(sessionStorage.getItem('ra_session')); }catch{ return null; } }
+function setSession(u){ sessionStorage.setItem('ra_session', JSON.stringify(u)); }
+function clearSession(){ sessionStorage.removeItem('ra_session'); }
+
+function initAuth(){
+  const s = getSession();
+  if(s){ showApp(s); }
+  else{ document.getElementById('login-screen').classList.remove('hidden'); }
+}
+
+function showApp(user){
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('main-app').style.display = 'flex';
+  const name = user.name || user.email;
+  document.getElementById('user-email-display').textContent = name;
+  const initials = name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  loadAll().then(()=>{ subscribeRealtime(); sendNotificationEmails(); });
+}
+
+function showLogin(){
+  clearSession();
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function doLogin(){
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if(!email || !password){ errEl.textContent='Please enter your email and password.'; errEl.classList.add('show'); return; }
+  btn.disabled=true; btn.textContent='Signing in…';
+  setTimeout(()=>{
+    const user = USERS[email];
+    if(user && user.password === password){
+      errEl.classList.remove('show');
+      setSession({ email, name: user.name });
+      showApp({ email, name: user.name });
+    } else {
+      errEl.textContent='Incorrect email or password.';
+      errEl.classList.add('show');
+      btn.disabled=false; btn.textContent='Sign In';
+    }
+  }, 400);
+}
+
+function doLogout(){ showLogin(); }
+
+initAuth();
+</script>
+</body>
+</html>
