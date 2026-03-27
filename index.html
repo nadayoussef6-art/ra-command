@@ -363,25 +363,6 @@
         <div id="projects-empty" class="empty-state" style="display:none;padding:80px;">
           <div class="empty-icon">◉</div><h3>No projects yet</h3><p>Click "+ Add New" to create your first project.</p>
         </div>
-        <!-- Project detail panel -->
-        <div class="proj-detail-overlay" id="proj-detail-overlay" onclick="if(event.target===this)closeProjDetail()"></div>
-        <div class="proj-detail-panel" id="proj-detail-panel">
-          <div class="proj-detail-header">
-            <div>
-              <div class="proj-detail-title" id="proj-detail-title"></div>
-              <div class="proj-detail-meta" id="proj-detail-meta"></div>
-            </div>
-            <button class="modal-close" onclick="closeProjDetail()">×</button>
-          </div>
-          <div class="proj-detail-body">
-            <div class="proj-detail-stats" id="proj-detail-stats"></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--text-muted);">Tasks</div>
-              <button class="btn btn-primary btn-sm" onclick="openTaskModalForProject(currentProjId)">＋ Add Task</button>
-            </div>
-            <div id="proj-detail-tasks"></div>
-          </div>
-        </div>
       </div>
 
       <!-- TASKS -->
