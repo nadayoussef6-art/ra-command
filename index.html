@@ -221,6 +221,40 @@
   .wf-stage-approved { border-left:3px solid var(--green); }
   .wf-stage-rejected { border-left:3px solid var(--accent); }
   .wf-stage-hold { border-left:3px solid var(--orange); }
+  /* ── PROJECTS ── */
+  .proj-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; padding:24px; }
+  .proj-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:20px; cursor:pointer; transition:all .15s; position:relative; }
+  .proj-card:hover { border-color:var(--teal); box-shadow:var(--shadow); transform:translateY(-1px); }
+  .proj-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .proj-card-name { font-weight:700; font-size:15px; color:var(--text); flex:1; margin-right:10px; }
+  .proj-card-meta { font-size:12px; color:var(--text-muted); line-height:1.8; margin-bottom:14px; }
+  .proj-card-stats { display:flex; gap:10px; flex-wrap:wrap; }
+  .proj-stat { background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:11px; font-family:'DM Mono',monospace; color:var(--text-muted); }
+  .proj-stat.red { background:var(--accent-light); color:var(--accent); border-color:rgba(180,60,40,.15); }
+  .proj-stat.green { background:var(--green-light); color:var(--green); border-color:rgba(30,120,60,.15); }
+  .proj-card-actions { display:flex; gap:6px; margin-top:14px; justify-content:flex-end; }
+  /* Project status badge */
+  .proj-status-active { background:var(--teal-light);color:var(--teal);border:1px solid rgba(26,107,94,.2);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600; }
+  .proj-status-on-hold { background:var(--gold-light);color:var(--gold);border:1px solid rgba(184,134,11,.2);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600; }
+  .proj-status-completed { background:var(--green-light);color:var(--green);border:1px solid rgba(30,120,60,.2);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600; }
+  /* Project detail panel */
+  .proj-detail-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200; }
+  .proj-detail-overlay.open { display:block; }
+  .proj-detail-panel { position:fixed;top:0;right:-680px;width:660px;height:100vh;background:var(--surface);border-left:1.5px solid var(--border);z-index:201;transition:right .25s;overflow-y:auto;display:flex;flex-direction:column; }
+  .proj-detail-panel.open { right:0; }
+  .proj-detail-header { padding:24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1; }
+  .proj-detail-title { font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);margin-bottom:4px; }
+  .proj-detail-meta { font-size:12.5px;color:var(--text-muted); }
+  .proj-detail-body { padding:24px;flex:1; }
+  .proj-detail-stats { display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap; }
+  .proj-detail-stat { background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;flex:1;min-width:100px;text-align:center; }
+  .proj-detail-stat-val { font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:var(--text); }
+  .proj-detail-stat-lbl { font-size:10.5px;color:var(--text-muted);margin-top:2px; }
+  .proj-task-row { display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:8px;cursor:pointer;transition:all .15s; }
+  .proj-task-row:hover { border-color:var(--teal); }
+  .proj-task-title { flex:1;font-size:13.5px;font-weight:500; }
+  .proj-task-meta { font-size:11.5px;color:var(--text-muted); }
+
   .upload-zone { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; cursor:pointer; transition:all .15s; margin-top:12px; }
   .upload-zone:hover { border-color:var(--accent); background:var(--accent-light); }
   .upload-zone.dragover { border-color:var(--accent); background:var(--accent-light); }
@@ -278,10 +312,11 @@
       <div class="nav-section-label">Overview</div>
       <div class="nav-item active" onclick="navigate('dashboard',this)"><span class="nav-icon">⬡</span> Dashboard</div>
       <div class="nav-section-label">Management</div>
+      <div class="nav-item" onclick="navigate('projects',this)"><span class="nav-icon">◉</span> Projects <span class="nav-badge" id="proj-badge">0</span></div>
       <div class="nav-item" onclick="navigate('tasks',this)"><span class="nav-icon">✓</span> Tasks <span class="nav-badge" id="task-badge">0</span></div>
       <div class="nav-item" onclick="navigate('submissions',this)"><span class="nav-icon">◻</span> Submissions <span class="nav-badge" id="sub-badge">0</span></div>
       <div class="nav-item" onclick="navigate('products',this)"><span class="nav-icon">◈</span> Products <span class="nav-badge" id="prod-badge">0</span></div>
-      <div class="nav-section-label">Settings</div>
+      <div class="nav-section-label">Tools</div>
       <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
       <div class="nav-section-label">Settings</div>
       <div class="nav-item" onclick="navigate('notifications',this)"><span class="nav-icon">🔔</span> Notifications</div>
@@ -322,6 +357,33 @@
         </div>
       </div>
 
+      <!-- PROJECTS -->
+      <div class="page" id="page-projects">
+        <div id="proj-grid" class="proj-grid"></div>
+        <div id="projects-empty" class="empty-state" style="display:none;padding:80px;">
+          <div class="empty-icon">◉</div><h3>No projects yet</h3><p>Click "+ Add New" to create your first project.</p>
+        </div>
+        <!-- Project detail panel -->
+        <div class="proj-detail-overlay" id="proj-detail-overlay" onclick="if(event.target===this)closeProjDetail()"></div>
+        <div class="proj-detail-panel" id="proj-detail-panel">
+          <div class="proj-detail-header">
+            <div>
+              <div class="proj-detail-title" id="proj-detail-title"></div>
+              <div class="proj-detail-meta" id="proj-detail-meta"></div>
+            </div>
+            <button class="modal-close" onclick="closeProjDetail()">×</button>
+          </div>
+          <div class="proj-detail-body">
+            <div class="proj-detail-stats" id="proj-detail-stats"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--text-muted);">Tasks</div>
+              <button class="btn btn-primary btn-sm" onclick="openTaskModalForProject(currentProjId)">＋ Add Task</button>
+            </div>
+            <div id="proj-detail-tasks"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- TASKS -->
       <div class="page" id="page-tasks">
         <div class="panel">
@@ -344,6 +406,7 @@
           </div>
           <div class="filter-row">
             <span class="filter-label">Filter:</span>
+            <select id="task-filter-project" class="filter-select" onchange="renderTasks()"><option value="">All Projects</option></select>
             <select id="task-filter-product" class="filter-select" onchange="renderTasks()"><option value="">All Products</option></select>
             <input type="date" id="task-filter-due-from" class="filter-date" onchange="renderTasks()" title="Due from">
             <input type="date" id="task-filter-due-to" class="filter-date" onchange="renderTasks()" title="Due to">
@@ -384,6 +447,7 @@
               <option value="hold">On Hold</option>
               <option value="withdrawn">Withdrawn</option>
             </select>
+            <select id="sub-filter-project" class="filter-select" onchange="renderSubmissions()"><option value="">All Projects</option></select>
             <select id="sub-filter-product" class="filter-select" onchange="renderSubmissions()"><option value="">All Products</option></select>
             <input type="date" id="sub-filter-target-from" class="filter-date" onchange="renderSubmissions()" title="Target date from">
             <input type="date" id="sub-filter-target-to" class="filter-date" onchange="renderSubmissions()" title="Target date to">
@@ -420,6 +484,55 @@
             <div class="empty-icon">⬡</div><h3>No products yet</h3><p>Click "+ Add New" to register your first product.</p>
           </div>
         </div>
+      </div>
+
+      <!-- PROJECTS -->
+      <div class="page" id="page-projects">
+        <div class="panel" style="border:none;background:transparent;box-shadow:none;">
+          <div class="panel-header" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+            <div class="panel-title">Projects</div>
+            <div class="panel-count" id="proj-panel-count">0 projects</div>
+            <div class="panel-header-actions">
+              <select id="proj-filter-status" class="filter-select" onchange="renderProjects()" style="font-size:12px;">
+                <option value="">All Statuses</option>
+                <option>Active</option>
+                <option>On Hold</option>
+                <option>Completed</option>
+              </select>
+            </div>
+          </div>
+          <div id="project-cards-grid" class="product-grid" style="background:transparent;padding:16px 0;"></div>
+          <div id="projects-empty" class="empty-state" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:60px;">
+            <div class="empty-icon">◉</div><h3>No projects yet</h3><p>Click "+ Add New" to create your first project.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECT DETAIL PANEL (slide-in) -->
+      <div id="proj-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;" onclick="closeProjDetail()"></div>
+      <div id="proj-detail-panel" style="display:none;position:fixed;top:0;right:0;width:700px;max-width:95vw;height:100vh;background:var(--surface);box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:201;overflow-y:auto;padding:32px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+          <div>
+            <div id="pd-title" style="font-family:'DM Serif Display',serif;font-size:22px;font-weight:400;"></div>
+            <div id="pd-meta" style="font-size:12.5px;color:var(--text-muted);margin-top:4px;"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-outline btn-sm" onclick="editProjFromDetail()">Edit</button>
+            <button class="btn btn-primary btn-sm" onclick="addTaskToProject()">+ Add Task</button>
+            <button class="modal-close" onclick="closeProjDetail()" style="position:relative;top:0;right:0;">×</button>
+          </div>
+        </div>
+        <div id="pd-desc" style="font-size:13.5px;color:var(--text-muted);margin-bottom:20px;line-height:1.6;"></div>
+        <div id="pd-links" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Tasks</div>
+        <div id="pd-task-filters" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="filter-chip active" onclick="setPdFilter('all',this)">All</button>
+          <button class="filter-chip" onclick="setPdFilter('open',this)">Open</button>
+          <button class="filter-chip" onclick="setPdFilter('in-progress',this)">In Progress</button>
+          <button class="filter-chip" onclick="setPdFilter('blocked',this)">Blocked</button>
+          <button class="filter-chip" onclick="setPdFilter('done',this)">Done</button>
+        </div>
+        <div id="pd-tasks-list"></div>
       </div>
 
       <!-- WORKFLOWS -->
@@ -511,6 +624,7 @@
         <div class="form-group"><label>Status</label><select id="task-status"><option value="open">Open</option><option value="in-progress">In Progress</option><option value="blocked">Blocked</option><option value="done">Done</option></select></div>
         <div class="form-group"><label>Assignee</label><input type="text" id="task-assignee" placeholder="Full name"></div>
         <div class="form-group"><label>Due Date</label><input type="date" id="task-due"></div>
+        <div class="form-group"><label>Project</label><select id="task-proj-link"><option value="">— No Project —</option></select></div>
         <div class="form-group"><label>Linked Submission</label><select id="task-sub-link"><option value="">— None —</option></select></div>
         <div class="form-group"><label>Linked Product</label><select id="task-prod-link"><option value="">— None —</option></select></div>
         <div class="form-group full"><label>Notes</label><textarea id="task-notes" placeholder="Additional context or instructions…"></textarea></div>
@@ -540,6 +654,7 @@
         <div class="form-group"><label>Submission Date</label><input type="date" id="sub-date"></div>
         <div class="form-group"><label>Target / PDUFA Date</label><input type="date" id="sub-pdufa"></div>
         <div class="form-group"><label>Regulatory Lead</label><input type="text" id="sub-lead" placeholder="Full name"></div>
+        <div class="form-group"><label>Project</label><select id="sub-proj-link"><option value="">— No Project —</option></select></div>
         <div class="form-group full"><label>Notes</label><textarea id="sub-notes" placeholder="Agency correspondence, special designations, etc."></textarea></div>
       </div>
     </div>
@@ -578,6 +693,34 @@
   </div>
 </div>
 
+<!-- PROJECT MODAL -->
+<div class="modal-overlay" id="proj-modal">
+  <div class="modal" style="width:640px;">
+    <div class="modal-header"><h2 id="proj-modal-title">New Project</h2><button class="modal-close" onclick="closeModal('proj-modal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="proj-edit-id">
+      <div class="form-row">
+        <div class="form-group full"><label>Project Name *</label><input type="text" id="proj-name" placeholder="e.g. Gonapure Registration 2026"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="proj-status">
+            <option value="active">Active</option>
+            <option value="on-hold">On Hold</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Responsible Person</label><input type="text" id="proj-responsible" placeholder="Full name"></div>
+        <div class="form-group"><label>Linked Product</label><select id="proj-prod-link"><option value="">— None —</option></select></div>
+        <div class="form-group"><label>Linked Submission</label><select id="proj-sub-link"><option value="">— None —</option></select></div>
+        <div class="form-group full"><label>Description</label><textarea id="proj-desc" placeholder="Describe the project objectives, scope, deliverables…"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('proj-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="proj-save-btn" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
 <!-- WORKFLOW MODAL -->
 <div class="modal-overlay" id="wf-modal">
   <div class="modal" style="width:640px;">
@@ -599,6 +742,7 @@
         <div class="form-group"><label>Linked Submission</label><select id="wf-sub-link"><option value="">— None —</option></select></div>
         <div class="form-group"><label>Responsible</label><input type="text" id="wf-responsible" placeholder="Full name"></div>
         <div class="form-group"><label>Due Date</label><input type="date" id="wf-due"></div>
+        <div class="form-group"><label>Project</label><select id="wf-proj-link"><option value="">— No Project —</option></select></div>
         <div class="form-group full"><label>Description / Notes</label><textarea id="wf-notes" placeholder="Describe this workflow, objectives, requirements…"></textarea></div>
         <div class="form-group full">
           <label>Attach Files</label>
@@ -626,8 +770,9 @@ const SUPABASE_URL = 'https://jpabaailxhqojdqxpflp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_t8AqEBzH_5DX8tR7_EaeLg_MygjBbaD';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let tasks = [], submissions = [], products = [];
+let tasks = [], submissions = [], products = [], projects = [];
 let currentPage = 'dashboard', taskFilter = 'all', subFilter = 'all';
+let currentProjId = null;
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
@@ -642,20 +787,22 @@ function pBadge(p){const m={high:'badge-high',medium:'badge-medium',low:'badge-l
 function setSyncStatus(s){const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-status');dot.className='sync-dot '+s;lbl.textContent=s==='online'?'Live sync on':s==='syncing'?'Saving…':'Connecting…';}
 
 // ── MAPPERS ──────────────────────────────────────────────────────────────────
-const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',notes:r.notes||''});
-const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',notes:r.notes||''});
+const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',projLink:r.proj_link||'',notes:r.notes||''});
+const mPrj=r=>({id:r.id,name:r.name,status:r.status||'active',responsible:r.responsible||'',prodLink:r.prod_link||'',subLink:r.sub_link||'',desc:r.description||''});
+const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',notes:r.notes||''});
 const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||''});
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadAll() {
   try {
-    const [t,s,p,w] = await Promise.all([
+    const [t,s,p,w,pr] = await Promise.all([
       db.from('tasks').select('*').order('created_at',{ascending:false}),
       db.from('submissions').select('*').order('created_at',{ascending:false}),
       db.from('products').select('*').order('created_at',{ascending:false}),
       db.from('workflows').select('*').order('created_at',{ascending:false}),
+      db.from('projects').select('*').order('created_at',{ascending:false}),
     ]);
-    tasks=(t.data||[]).map(mT); submissions=(s.data||[]).map(mS); products=(p.data||[]).map(mP); workflows=(w.data||[]).map(mW);
+    tasks=(t.data||[]).map(mT); submissions=(s.data||[]).map(mS); products=(p.data||[]).map(mP); workflows=(w.data||[]).map(mW); projects=(pr.data||[]).map(mPrj);
     setSyncStatus('online');
     document.getElementById('loading-overlay').classList.add('hidden');
     renderAll();
@@ -670,12 +817,13 @@ function subscribeRealtime() {
     .on('postgres_changes',{event:'*',schema:'public',table:'submissions'},async()=>{const{data}=await db.from('submissions').select('*').order('created_at',{ascending:false});submissions=(data||[]).map(mS);renderAll();})
     .on('postgres_changes',{event:'*',schema:'public',table:'products'},async()=>{const{data}=await db.from('products').select('*').order('created_at',{ascending:false});products=(data||[]).map(mP);renderAll();})
     .on('postgres_changes',{event:'*',schema:'public',table:'workflows'},async()=>{const{data}=await db.from('workflows').select('*').order('created_at',{ascending:false});workflows=(data||[]).map(mW);renderAll();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'projects'},async()=>{const{data}=await db.from('projects').select('*').order('created_at',{ascending:false});projects=(data||[]).map(mPrj);renderAll();})
     .subscribe();
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'}};
-const addLabels={dashboard:'Add Task',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -688,13 +836,13 @@ function navigate(page,el){
   renderAll();
   if(page==='notifications') applyNotifUI();
 }
-function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();}
+function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();}
 function setTaskFilter(f,el){taskFilter=f;document.querySelectorAll('#page-tasks .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks();}
 function setSubFilter(f,el){subFilter=f;document.querySelectorAll('#page-submissions .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){renderDashboard();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();}
-function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();}
+function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
   const now=new Date();now.setHours(0,0,0,0);
@@ -736,6 +884,7 @@ function populateTaskFilterDropdowns(){
   prodSel.value=cur;
 }
 function clearTaskFilters(){
+  const tp=document.getElementById('task-filter-project');if(tp)tp.value='';
   document.getElementById('task-filter-product').value='';
   document.getElementById('task-filter-due-from').value='';
   document.getElementById('task-filter-due-to').value='';
@@ -744,10 +893,12 @@ function clearTaskFilters(){
 function renderTasks(){
   populateTaskFilterDropdowns();
   const sort=document.getElementById('task-sort').value;
+  const fproj=document.getElementById('task-filter-project')?.value||'';
   const fprod=document.getElementById('task-filter-product').value;
   const ffrom=document.getElementById('task-filter-due-from').value;
   const fto=document.getElementById('task-filter-due-to').value;
   let f=taskFilter==='all'?[...tasks]:tasks.filter(t=>t.status===taskFilter);
+  if(fproj) f=f.filter(t=>t.projLink===fproj);
   if(fprod) f=f.filter(t=>t.prodLink===fprod);
   if(ffrom) f=f.filter(t=>t.due&&t.due>=ffrom);
   if(fto) f=f.filter(t=>t.due&&t.due<=fto);
@@ -771,6 +922,7 @@ function populateSubFilterDropdowns(){
   prodSel.value=cur;
 }
 function clearSubFilters(){
+  const sp=document.getElementById('sub-filter-project');if(sp)sp.value='';
   document.getElementById('sub-filter-status').value='';
   document.getElementById('sub-filter-product').value='';
   document.getElementById('sub-filter-target-from').value='';
@@ -834,12 +986,13 @@ function renderProducts(){
 function populateSelects(){
   document.getElementById('task-sub-link').innerHTML='<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
   document.getElementById('task-prod-link').innerHTML='<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  populateProjSelects();
 }
 function openTaskModal(id){
   populateSelects();
   document.getElementById('task-modal-title').textContent=id?'Edit Task':'New Task';
   document.getElementById('task-edit-id').value=id||'';
-  if(id){const t=tasks.find(t=>t.id===id);document.getElementById('task-title').value=t.title;document.getElementById('task-desc').value=t.desc||'';document.getElementById('task-priority').value=t.priority;document.getElementById('task-status').value=t.status;document.getElementById('task-assignee').value=t.assignee;document.getElementById('task-due').value=t.due;document.getElementById('task-sub-link').value=t.subLink||'';document.getElementById('task-prod-link').value=t.prodLink||'';document.getElementById('task-notes').value=t.notes||'';}
+  if(id){const t=tasks.find(t=>t.id===id);document.getElementById('task-title').value=t.title;document.getElementById('task-desc').value=t.desc||'';document.getElementById('task-priority').value=t.priority;document.getElementById('task-status').value=t.status;document.getElementById('task-assignee').value=t.assignee;document.getElementById('task-due').value=t.due;document.getElementById('task-sub-link').value=t.subLink||'';document.getElementById('task-prod-link').value=t.prodLink||'';document.getElementById('task-proj-link').value=t.projLink||'';document.getElementById('task-notes').value=t.notes||'';}
   else{['task-title','task-desc','task-assignee','task-due','task-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('task-priority').value='medium';document.getElementById('task-status').value='open';document.getElementById('task-sub-link').value='';document.getElementById('task-prod-link').value='';}
   document.getElementById('task-modal').classList.add('open');
 }
@@ -849,7 +1002,7 @@ async function saveTask(){
   const btn=document.getElementById('task-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('task-edit-id').value;
   const id=editId||uid();
-  const row={id,title,description:document.getElementById('task-desc').value.trim(),priority:document.getElementById('task-priority').value,status:document.getElementById('task-status').value,assignee:document.getElementById('task-assignee').value.trim(),due_date:document.getElementById('task-due').value||null,sub_link:document.getElementById('task-sub-link').value||null,prod_link:document.getElementById('task-prod-link').value||null,notes:document.getElementById('task-notes').value.trim()};
+  const row={id,title,description:document.getElementById('task-desc').value.trim(),priority:document.getElementById('task-priority').value,status:document.getElementById('task-status').value,assignee:document.getElementById('task-assignee').value.trim(),due_date:document.getElementById('task-due').value||null,sub_link:document.getElementById('task-sub-link').value||null,prod_link:document.getElementById('task-prod-link').value||null,proj_link:document.getElementById('task-proj-link').value||null,notes:document.getElementById('task-notes').value.trim()};
   const{error}=editId?await db.from('tasks').update(row).eq('id',editId):await db.from('tasks').insert(row);
   btn.disabled=false;btn.textContent='Save Task';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
@@ -866,10 +1019,11 @@ function populateProductDatalist(){
 }
 function openSubModal(id){
   populateProductDatalist();
+  populateProjSelects();
   document.getElementById('sub-modal-title').textContent=id?'Edit Submission':'New Submission';
   document.getElementById('sub-edit-id').value=id||'';
-  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-notes').value=s.notes||'';}
-  else{['sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';}
+  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-proj-link').value=s.projLink||'';document.getElementById('sub-notes').value=s.notes||'';}
+  else{['sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';document.getElementById('sub-proj-link').value='';}
   document.getElementById('sub-modal').classList.add('open');
 }
 async function saveSubmission(){
@@ -877,7 +1031,7 @@ async function saveSubmission(){
   if(!subId||!product){alert('Submission ID and Product are required.');return;}
   const btn=document.getElementById('sub-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('sub-edit-id').value;
-  const row={id:subId,product,type:document.getElementById('sub-type').value,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),notes:document.getElementById('sub-notes').value.trim()};
+  const row={id:subId,product,type:document.getElementById('sub-type').value,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim()};
   const{error}=editId?await db.from('submissions').update(row).eq('id',editId):await db.from('submissions').insert(row);
   btn.disabled=false;btn.textContent='Save Submission';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
@@ -924,6 +1078,7 @@ const WF_STAGES = [
 const mW = r => ({
   id:r.id, title:r.title, stage:r.stage||'draft',
   prodLink:r.prod_link||'', subLink:r.sub_link||'',
+  projLink:r.proj_link||'',
   responsible:r.responsible||'', due:r.due_date||'',
   notes:r.notes||'', files:r.files||[]
 });
@@ -973,12 +1128,14 @@ function openWfModal(id){
   // Populate selects
   document.getElementById('wf-prod-link').innerHTML='<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   document.getElementById('wf-sub-link').innerHTML='<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  populateProjSelects();
   if(id){
     const w=workflows.find(w=>w.id===id);
     document.getElementById('wf-title').value=w.title;
     document.getElementById('wf-stage').value=w.stage;
     document.getElementById('wf-prod-link').value=w.prodLink||'';
     document.getElementById('wf-sub-link').value=w.subLink||'';
+    document.getElementById('wf-proj-link').value=w.projLink||'';
     document.getElementById('wf-responsible').value=w.responsible||'';
     document.getElementById('wf-due').value=w.due||'';
     document.getElementById('wf-notes').value=w.notes||'';
@@ -991,6 +1148,7 @@ function openWfModal(id){
     document.getElementById('wf-stage').value='draft';
     document.getElementById('wf-prod-link').value='';
     document.getElementById('wf-sub-link').value='';
+    document.getElementById('wf-proj-link').value='';
   }
   document.getElementById('wf-modal').classList.add('open');
 }
@@ -1064,6 +1222,7 @@ async function saveWorkflow(){
     stage: document.getElementById('wf-stage').value,
     prod_link: document.getElementById('wf-prod-link').value||null,
     sub_link: document.getElementById('wf-sub-link').value||null,
+    proj_link: document.getElementById('wf-proj-link').value||null,
     responsible: document.getElementById('wf-responsible').value.trim(),
     due_date: document.getElementById('wf-due').value||null,
     notes: document.getElementById('wf-notes').value.trim(),
@@ -1221,7 +1380,182 @@ async function sendNotificationEmails(){
   }
 }
 
-// ── INIT ─────────────────────────────────────────────────────────────────────
+
+// ── PROJECTS ─────────────────────────────────────────────────────────────────
+let pdFilter = 'all';
+
+const PROJ_STATUS_COLORS = {
+  'active': {bg:'var(--teal-light)',color:'var(--teal)'},
+  'on-hold': {bg:'var(--gold-light)',color:'var(--gold)'},
+  'completed': {bg:'var(--green-light)',color:'var(--green)'},
+};
+
+function projStatusBadge(s){
+  const c=PROJ_STATUS_COLORS[s]||{bg:'var(--surface2)',color:'var(--text-muted)'};
+  const l={'active':'Active','on-hold':'On Hold','completed':'Completed'};
+  return `<span style="background:${c.bg};color:${c.color};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">${l[s]||s}</span>`;
+}
+
+function renderProjects(){
+  const grid = document.getElementById('proj-grid') || document.getElementById('project-cards-grid');
+  const empty = document.getElementById('projects-empty');
+  if(!grid) return;
+  const fStatus = document.getElementById('proj-filter-status')?.value||'';
+  let f = [...projects];
+  if(fStatus) f = f.filter(p=>p.status.toLowerCase()===fStatus.toLowerCase());
+  const pc=document.getElementById('proj-panel-count');if(pc)pc.textContent=f.length+' project'+(f.length!==1?'s':'');
+  if(!f.length){ grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  grid.innerHTML = f.map(p=>{
+    const pt = tasks.filter(t=>t.projLink===p.id);
+    const ps = submissions.filter(s=>s.projLink===p.id);
+    const pw = workflows.filter(w=>w.projLink===p.id);
+    const open = pt.filter(t=>t.status!=='done').length;
+    const done = pt.filter(t=>t.status==='done').length;
+    const lp = products.find(pr=>pr.id===p.prodLink);
+    return `<div class="product-card" style="cursor:pointer;" onclick="openProjDetail('${p.id}')">
+      <div class="product-card-header">
+        <div><div class="product-name">${p.name}</div><div class="product-id">${projStatusBadge(p.status)}</div></div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 8px;" onclick="event.stopPropagation();openProjModal('${p.id}')">Edit</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 8px;color:var(--accent);" onclick="event.stopPropagation();deleteProject('${p.id}')">Del</button>
+        </div>
+      </div>
+      ${p.desc?`<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">${p.desc}</div>`:''}
+      <div class="product-meta">
+        ${p.responsible?`<div>👤 ${p.responsible}</div>`:''}
+        ${lp?`<div>📦 ${lp.name}</div>`:''}
+        <div>✓ ${open} open task${open!==1?'s':''} · ${done} done</div>
+        ${ps.length?`<div>📋 ${ps.length} submission${ps.length!==1?'s':''}</div>`:''}
+        ${pw.length?`<div>⟳ ${pw.length} workflow${pw.length!==1?'s':''}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openProjDetail(id){
+  currentProjId = id;
+  pdFilter = 'all';
+  const p = projects.find(p=>p.id===id);
+  if(!p) return;
+  document.getElementById('pd-title').textContent = p.name;
+  const lp = products.find(pr=>pr.id===p.prodLink);
+  const ls = submissions.find(s=>s.id===p.subLink);
+  document.getElementById('pd-meta').textContent = [p.responsible?'👤 '+p.responsible:'', lp?'📦 '+lp.name:'', ls?'📋 '+ls.id:''].filter(Boolean).join('  ·  ');
+  document.getElementById('pd-desc').textContent = p.desc||'';
+  const links = [];
+  if(lp) links.push(`<span class="type-pill">📦 ${lp.name}</span>`);
+  if(ls) links.push(`<span class="type-pill">📋 ${ls.id}</span>`);
+  document.getElementById('pd-links').innerHTML = links.join('');
+  renderPdTasks();
+  document.getElementById('proj-detail-overlay').style.display='block';
+  document.getElementById('proj-detail-panel').style.display='block';
+}
+
+function renderPdTasks(){
+  const p = projects.find(p=>p.id===currentProjId);
+  if(!p) return;
+  let pt = tasks.filter(t=>t.projLink===currentProjId);
+  if(pdFilter!=='all') pt = pt.filter(t=>t.status===pdFilter);
+  // Also show linked submissions and workflows
+  const ps = submissions.filter(s=>s.projLink===currentProjId);
+  const pw = workflows.filter(w=>w.projLink===currentProjId);
+  const open=tasks.filter(t=>t.projLink===currentProjId&&t.status!=='done').length;
+  const done=tasks.filter(t=>t.projLink===currentProjId&&t.status==='done').length;
+  const total=tasks.filter(t=>t.projLink===currentProjId).length;
+  // Stats
+  document.getElementById('pd-tasks-list').innerHTML = [
+    `<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 18px;text-align:center;flex:1;min-width:80px;"><div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;">${total}</div><div style="font-size:10.5px;color:var(--text-muted);">Total Tasks</div></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 18px;text-align:center;flex:1;min-width:80px;"><div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--accent);">${open}</div><div style="font-size:10.5px;color:var(--text-muted);">Open</div></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 18px;text-align:center;flex:1;min-width:80px;"><div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--green);">${done}</div><div style="font-size:10.5px;color:var(--text-muted);">Done</div></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 18px;text-align:center;flex:1;min-width:80px;"><div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--blue);">${ps.length}</div><div style="font-size:10.5px;color:var(--text-muted);">Submissions</div></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 18px;text-align:center;flex:1;min-width:80px;"><div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--purple);">${pw.length}</div><div style="font-size:10.5px;color:var(--text-muted);">Workflows</div></div>
+    </div>`,
+    `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;margin-top:4px;">Tasks</div>`,
+    pt.length ? pt.map(t=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;"><div style="font-weight:500;font-size:13.5px;">${t.title}</div>${t.due?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">Due: ${fmt(t.due)}</div>`:''}</div>
+      ${tBadge(t.status)}${pBadge(t.priority)}
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editTask('${t.id}')">Edit</button>
+    </div>`).join('') : `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">No tasks yet. Click "+ Add Task" to get started.</div>`,
+    ps.length ? `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px;">Submissions</div>`+ps.map(s=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;"><div style="flex:1;"><div style="font-weight:500;font-size:13px;">${s.id}</div><div style="font-size:11.5px;color:var(--text-muted);">${s.product} · ${s.type}</div></div>${sBadge(s.status)}</div>`).join('') : '',
+    pw.length ? `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px;">Workflows</div>`+pw.map(w=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;"><div style="font-weight:500;font-size:13px;">${w.title}</div><div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${w.stage}</div></div>`).join('') : ''
+  ].join('');
+}
+
+function setPdFilter(f,el){pdFilter=f;document.querySelectorAll('#pd-task-filters .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderPdTasks();}
+
+function closeProjDetail(){
+  document.getElementById('proj-detail-overlay').style.display='none';
+  document.getElementById('proj-detail-panel').style.display='none';
+  currentProjId=null;
+}
+
+function addTaskToProject(){
+  closeProjDetail();
+  openTaskModalForProject(currentProjId);
+}
+
+function openTaskModalForProject(projId){
+  openTaskModal();
+  setTimeout(()=>{
+    const sel=document.getElementById('task-proj-link');
+    if(sel&&projId) sel.value=projId;
+  },50);
+}
+
+function editProjFromDetail(){ const id=currentProjId; closeProjDetail(); openProjModal(id); }
+
+function populateProjSelects(){
+  const opts = '<option value="">— No Project —</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  ['task-proj-link','sub-proj-link','wf-proj-link'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
+  // Project filter dropdowns
+  const fopts = '<option value="">All Projects</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  ['task-filter-project','sub-filter-project','wf-filter-project'].forEach(id=>{const el=document.getElementById(id);if(el){const cur=el.value;el.innerHTML=fopts;el.value=cur;}});
+}
+
+function openProjModal(id){
+  document.getElementById('proj-modal-title').textContent = id?'Edit Project':'New Project';
+  document.getElementById('proj-edit-id').value = id||'';
+  document.getElementById('proj-prod-link').innerHTML='<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('proj-sub-link').innerHTML='<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  if(id){
+    const p=projects.find(p=>p.id===id);
+    document.getElementById('proj-name').value=p.name;
+    document.getElementById('proj-status').value=p.status||'active';
+    document.getElementById('proj-responsible').value=p.responsible||'';
+    document.getElementById('proj-prod-link').value=p.prodLink||'';
+    document.getElementById('proj-sub-link').value=p.subLink||'';
+    document.getElementById('proj-desc').value=p.desc||'';
+  } else {
+    ['proj-name','proj-responsible','proj-desc'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('proj-status').value='active';
+    document.getElementById('proj-prod-link').value='';
+    document.getElementById('proj-sub-link').value='';
+  }
+  document.getElementById('proj-modal').classList.add('open');
+}
+
+async function saveProject(){
+  const name=document.getElementById('proj-name').value.trim();
+  if(!name){alert('Project name is required.');return;}
+  const btn=document.getElementById('proj-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
+  const editId=document.getElementById('proj-edit-id').value;
+  const id=editId||uid();
+  const row={id,name,status:document.getElementById('proj-status').value,responsible:document.getElementById('proj-responsible').value.trim(),prod_link:document.getElementById('proj-prod-link').value||null,sub_link:document.getElementById('proj-sub-link').value||null,description:document.getElementById('proj-desc').value.trim()};
+  const{error}=editId?await db.from('projects').update(row).eq('id',editId):await db.from('projects').insert(row);
+  btn.disabled=false;btn.textContent='Save Project';
+  if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
+  closeModal('proj-modal');showToast('✓',editId?'Project updated':'Project created');setSyncStatus('online');
+}
+
+async function deleteProject(id){
+  if(!confirm('Delete this project? Tasks linked to it will remain but lose the project link.'))return;
+  setSyncStatus('syncing');
+  await db.from('projects').delete().eq('id',id);
+  setSyncStatus('online');showToast('🗑','Project deleted');
+}
+
 // ── SIMPLE AUTH ──────────────────────────────────────────────────────────────
 const USERS = {
   'nada.youssef@dafholding.com':       { password: 'DAF@2026', name: 'Nada Youssef' },
