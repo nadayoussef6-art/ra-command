@@ -319,6 +319,7 @@
       <div class="nav-item" onclick="navigate('products',this)"><span class="nav-icon">◈</span> Products <span class="nav-badge" id="prod-badge">0</span></div>
       <div class="nav-section-label">Tools</div>
       <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
+      <div class="nav-item" onclick="navigate('reports',this)"><span class="nav-icon">📊</span> Reports</div>
       <div class="nav-section-label">Settings</div>
       <div class="nav-item" onclick="navigate('notifications',this)"><span class="nav-icon">🔔</span> Notifications</div>
     </nav>
@@ -522,6 +523,84 @@
         <div class="workflow-board" id="wf-board"></div>
         <div id="wf-empty" class="empty-state" style="display:none;padding:80px;">
           <div class="empty-icon">⟳</div><h3>No workflows yet</h3><p>Click "+ Add New" to create your first workflow.</p>
+        </div>
+      </div>
+
+
+      <!-- REPORTS -->
+      <div class="page" id="page-reports">
+        <div style="padding:24px;max-width:1100px;">
+
+          <!-- Filter Bar -->
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-header"><div class="panel-title">Report Filters</div></div>
+            <div style="padding:20px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;">
+              <div class="form-group" style="min-width:160px;margin:0;">
+                <label>Report Type</label>
+                <select id="rpt-type" class="filter-select" style="width:100%;" onchange="renderReport()">
+                  <option value="tasks">Tasks Status</option>
+                  <option value="submissions">Submissions Pipeline</option>
+                  <option value="products">Products Registration</option>
+                  <option value="projects">Project Progress</option>
+                  <option value="manufacturers">Manufacturers</option>
+                </select>
+              </div>
+              <div class="form-group" style="min-width:160px;margin:0;">
+                <label>Project</label>
+                <select id="rpt-project" class="filter-select" style="width:100%;" onchange="renderReport()"><option value="">All Projects</option></select>
+              </div>
+              <div class="form-group" style="min-width:160px;margin:0;">
+                <label>Product</label>
+                <select id="rpt-product" class="filter-select" style="width:100%;" onchange="renderReport()"><option value="">All Products</option></select>
+              </div>
+              <div class="form-group" style="min-width:130px;margin:0;">
+                <label>Status</label>
+                <select id="rpt-status" class="filter-select" style="width:100%;" onchange="renderReport()">
+                  <option value="">All Statuses</option>
+                  <option value="open">Open</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="done">Done</option>
+                  <option value="preparation">In Preparation</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="review">Under Review</option>
+                  <option value="approved">Approved</option>
+                  <option value="hold">On Hold</option>
+                  <option value="withdrawn">Withdrawn</option>
+                </select>
+              </div>
+              <div class="form-group" style="min-width:130px;margin:0;">
+                <label>Date From</label>
+                <input type="date" id="rpt-date-from" class="filter-date" style="width:100%;" onchange="renderReport()">
+              </div>
+              <div class="form-group" style="min-width:130px;margin:0;">
+                <label>Date To</label>
+                <input type="date" id="rpt-date-to" class="filter-date" style="width:100%;" onchange="renderReport()">
+              </div>
+              <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:2px;">
+                <button class="btn btn-outline btn-sm" onclick="clearRptFilters()">✕ Clear</button>
+                <button class="btn btn-primary btn-sm" onclick="exportReportPDF()">⬇ PDF</button>
+                <button class="btn btn-primary btn-sm" onclick="exportReportExcel()">⬇ Excel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Report Output -->
+          <div class="panel" id="rpt-panel">
+            <div class="panel-header">
+              <div class="panel-title" id="rpt-title">Tasks Status Report</div>
+              <div class="panel-count" id="rpt-count">0 records</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-left:auto;padding-right:4px;" id="rpt-date-label"></div>
+            </div>
+            <!-- Summary stats -->
+            <div id="rpt-summary" style="display:flex;flex-wrap:wrap;gap:10px;padding:16px 24px;border-bottom:1px solid var(--border);"></div>
+            <!-- Table -->
+            <div class="table-wrap" id="rpt-table-wrap">
+              <table id="rpt-table"><thead id="rpt-thead"></thead><tbody id="rpt-tbody"></tbody></table>
+              <div id="rpt-empty" class="empty-state" style="display:none;"><div class="empty-icon">📊</div><h3>No data</h3><p>Adjust filters to see results.</p></div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -804,8 +883,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -817,13 +896,14 @@ function navigate(page,el){
   if(addLabels[page]==='') document.getElementById('add-btn').style.display='none'; else document.getElementById('add-btn').style.display='';
   renderAll();
   if(page==='notifications') applyNotifUI();
+  if(page==='reports'){ initReportFilters(); renderReport(); }
 }
 function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();}
 function setTaskFilter(f,el){taskFilter=f;document.querySelectorAll('#page-tasks .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks();}
 function setSubFilter(f,el){subFilter=f;document.querySelectorAll('#page-submissions .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}}
 function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
@@ -1362,6 +1442,220 @@ async function sendNotificationEmails(){
   }
 }
 
+
+
+// ── REPORTS ──────────────────────────────────────────────────────────────────
+function initReportFilters(){
+  const rp = document.getElementById('rpt-project');
+  const rprod = document.getElementById('rpt-product');
+  if(rp){
+    const cur=rp.value;
+    rp.innerHTML='<option value="">All Projects</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    rp.value=cur;
+  }
+  if(rprod){
+    const cur=rprod.value;
+    rprod.innerHTML='<option value="">All Products</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    rprod.value=cur;
+  }
+}
+
+function clearRptFilters(){
+  ['rpt-project','rpt-product','rpt-status'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['rpt-date-from','rpt-date-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderReport();
+}
+
+function getReportFilters(){
+  return {
+    type: document.getElementById('rpt-type')?.value||'tasks',
+    project: document.getElementById('rpt-project')?.value||'',
+    product: document.getElementById('rpt-product')?.value||'',
+    status: document.getElementById('rpt-status')?.value||'',
+    from: document.getElementById('rpt-date-from')?.value||'',
+    to: document.getElementById('rpt-date-to')?.value||''
+  };
+}
+
+function statBox(val,label,color='var(--text)'){
+  return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px 18px;text-align:center;min-width:90px;">
+    <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:${color};">${val}</div>
+    <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px;">${label}</div>
+  </div>`;
+}
+
+function renderReport(){
+  if(currentPage!=='reports') return;
+  initReportFilters();
+  const f = getReportFilters();
+  const titles={tasks:'Tasks Status Report',submissions:'Submissions Pipeline Report',products:'Products Registration Report',projects:'Project Progress Report',manufacturers:'Manufacturers Report'};
+  document.getElementById('rpt-title').textContent = titles[f.type]||'Report';
+  document.getElementById('rpt-date-label').textContent = (f.from||f.to)?`${f.from?'From: '+fmt(f.from):''}${f.from&&f.to?' · ':''}${f.to?'To: '+fmt(f.to):''}` : 'All dates';
+
+  let thead='', rows=[], summary='', count=0;
+
+  if(f.type==='tasks'){
+    let data=[...tasks];
+    if(f.project) data=data.filter(t=>t.projLink===f.project);
+    if(f.product) data=data.filter(t=>t.prodLink===f.product);
+    if(f.status) data=data.filter(t=>t.status===f.status);
+    if(f.from) data=data.filter(t=>t.due&&t.due>=f.from);
+    if(f.to) data=data.filter(t=>t.due&&t.due<=f.to);
+    count=data.length;
+    const now=new Date(); now.setHours(0,0,0,0);
+    const open=data.filter(t=>t.status==='open').length;
+    const inprog=data.filter(t=>t.status==='in-progress').length;
+    const blocked=data.filter(t=>t.status==='blocked').length;
+    const done=data.filter(t=>t.status==='done').length;
+    const overdue=data.filter(t=>t.status!=='done'&&t.due&&new Date(t.due)<now).length;
+    summary=statBox(open,'Open','var(--blue)')+statBox(inprog,'In Progress','var(--gold)')+statBox(blocked,'Blocked','var(--orange)')+statBox(done,'Done','var(--green)')+statBox(overdue,'Overdue','var(--accent)');
+    thead=`<tr><th>Task</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Due Date</th><th>Project</th><th>Linked Product</th></tr>`;
+    rows=data.map(t=>{
+      const proj=projects.find(p=>p.id===t.projLink);
+      const prod=products.find(p=>p.id===t.prodLink);
+      const overdue=t.status!=='done'&&t.due&&new Date(t.due)<now;
+      return `<tr><td style="font-weight:500;">${t.title}</td><td>${pBadge(t.priority)}</td><td>${tBadge(t.status)}</td><td>${t.assignee||'—'}</td><td><span class="due-date ${dueCls(t.due)}" style="${overdue?'color:var(--accent);font-weight:600;':''}">${fmt(t.due)}</span></td><td>${proj?proj.name:'—'}</td><td>${prod?prod.name:'—'}</td></tr>`;
+    });
+  }
+
+  else if(f.type==='submissions'){
+    let data=[...submissions];
+    if(f.project) data=data.filter(s=>s.projLink===f.project);
+    if(f.product) data=data.filter(s=>s.product===document.getElementById('rpt-product').options[document.getElementById('rpt-product').selectedIndex]?.text||s.product.includes(f.product));
+    if(f.status) data=data.filter(s=>s.status===f.status);
+    if(f.from) data=data.filter(s=>(s.pdufa||s.date)&&(s.pdufa||s.date)>=f.from);
+    if(f.to) data=data.filter(s=>(s.pdufa||s.date)&&(s.pdufa||s.date)<=f.to);
+    count=data.length;
+    const prep=data.filter(s=>s.status==='preparation').length;
+    const sub=data.filter(s=>s.status==='submitted').length;
+    const rev=data.filter(s=>s.status==='review').length;
+    const app=data.filter(s=>s.status==='approved').length;
+    summary=statBox(prep,'In Prep','var(--text-muted)')+statBox(sub,'Submitted','var(--blue)')+statBox(rev,'Under Review','var(--gold)')+statBox(app,'Approved','var(--green)');
+    thead=`<tr><th>Submission ID</th><th>Product</th><th>Type</th><th>Status</th><th>Submission Date</th><th>Target Date</th><th>Lead</th><th>Project</th></tr>`;
+    rows=data.map(s=>{
+      const proj=projects.find(p=>p.id===s.projLink);
+      return `<tr><td style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;">${s.id}</td><td>${s.product}</td><td><span class="type-pill">${s.type}</span></td><td>${sBadge(s.status)}</td><td>${fmt(s.date)}</td><td><span class="due-date ${dueCls(s.pdufa)}">${fmt(s.pdufa)}</span></td><td>${s.lead||'—'}</td><td>${proj?proj.name:'—'}</td></tr>`;
+    });
+  }
+
+  else if(f.type==='products'){
+    let data=[...products];
+    if(f.status) data=data.filter(p=>p.regStatus===f.status||p.regStatus.toLowerCase().includes(f.status));
+    if(f.from) data=data.filter(p=>p.renewalDate&&p.renewalDate>=f.from);
+    if(f.to) data=data.filter(p=>p.renewalDate&&p.renewalDate<=f.to);
+    count=data.length;
+    const now=new Date(); now.setHours(0,0,0,0);
+    const reg=data.filter(p=>p.regStatus==='Registered').length;
+    const pend=data.filter(p=>p.regStatus==='Pending Registration').length;
+    const exp=data.filter(p=>p.regStatus==='Expired').length;
+    const expiring=data.filter(p=>p.renewalDate&&(new Date(p.renewalDate)-now)/86400000<=60&&(new Date(p.renewalDate)-now)/86400000>=0).length;
+    summary=statBox(reg,'Registered','var(--green)')+statBox(pend,'Pending','var(--blue)')+statBox(exp,'Expired','var(--accent)')+statBox(expiring,'Expiring Soon','var(--orange)');
+    thead=`<tr><th>Product</th><th>Internal ID</th><th>Category</th><th>Reg. Status</th><th>Reg. No.</th><th>Renewal Date</th><th>Country</th><th>Ref/Non-Ref</th><th>Owner</th></tr>`;
+    rows=data.map(p=>{
+      const soon=p.renewalDate&&(new Date(p.renewalDate)-now)/86400000<=60;
+      return `<tr><td style="font-weight:500;">${p.name}</td><td style="font-family:'DM Mono',monospace;font-size:11.5px;">${p.internalId||'—'}</td><td>${p.category||'—'}</td><td>${p.regStatus||'—'}</td><td style="font-family:'DM Mono',monospace;font-size:11.5px;">${p.regNo||'—'}</td><td style="${soon?'color:var(--orange);font-weight:600;':''}">${fmt(p.renewalDate)}</td><td>${p.country||'—'}</td><td>${p.refType||'—'}</td><td>${p.owner||'—'}</td></tr>`;
+    });
+  }
+
+  else if(f.type==='projects'){
+    let data=[...projects];
+    if(f.status) data=data.filter(p=>p.status===f.status||p.status.toLowerCase().includes(f.status));
+    count=data.length;
+    const active=data.filter(p=>p.status==='active').length;
+    const onhold=data.filter(p=>p.status==='on-hold').length;
+    const completed=data.filter(p=>p.status==='completed').length;
+    summary=statBox(active,'Active','var(--blue)')+statBox(onhold,'On Hold','var(--gold)')+statBox(completed,'Completed','var(--green)');
+    thead=`<tr><th>Project</th><th>Status</th><th>Responsible</th><th>Total Tasks</th><th>Open</th><th>Done</th><th>Submissions</th><th>Workflows</th></tr>`;
+    rows=data.map(p=>{
+      const pt=tasks.filter(t=>t.projLink===p.id);
+      const open=pt.filter(t=>t.status!=='done').length;
+      const done=pt.filter(t=>t.status==='done').length;
+      const ps=submissions.filter(s=>s.projLink===p.id).length;
+      const pw=workflows.filter(w=>w.projLink===p.id).length;
+      const pct=pt.length?Math.round(done/pt.length*100):0;
+      return `<tr><td style="font-weight:500;">${p.name}</td><td>${projStatusBadge(p.status)}</td><td>${p.responsible||'—'}</td><td style="font-family:'DM Mono',monospace;">${pt.length}</td><td style="font-family:'DM Mono',monospace;color:var(--accent);">${open}</td><td style="font-family:'DM Mono',monospace;color:var(--green);">${done} (${pct}%)</td><td style="font-family:'DM Mono',monospace;">${ps}</td><td style="font-family:'DM Mono',monospace;">${pw}</td></tr>`;
+    });
+  }
+
+  else if(f.type==='manufacturers'){
+    // Group products by owner
+    const owners={};
+    products.forEach(p=>{
+      const key=p.owner||'Unknown';
+      if(!owners[key]) owners[key]={owner:key,products:[],countries:new Set(),regStatuses:{}};
+      owners[key].products.push(p);
+      if(p.country) owners[key].countries.add(p.country);
+      owners[key].regStatuses[p.regStatus||'Unknown']=(owners[key].regStatuses[p.regStatus||'Unknown']||0)+1;
+    });
+    let data=Object.values(owners);
+    if(f.from||f.to||f.status||f.project) {} // manufacturers don't filter same way
+    count=data.length;
+    summary=statBox(data.length,'Manufacturers','var(--blue)')+statBox(products.length,'Total Products','var(--teal)')+statBox(new Set(products.map(p=>p.country).filter(Boolean)).size,'Countries','var(--gold)');
+    thead=`<tr><th>Manufacturer / Owner</th><th>Products Count</th><th>Products</th><th>Countries</th><th>Reg. Statuses</th></tr>`;
+    rows=data.map(m=>{
+      const statuses=Object.entries(m.regStatuses).map(([k,v])=>`${k}: ${v}`).join(', ');
+      return `<tr><td style="font-weight:600;">${m.owner}</td><td style="font-family:'DM Mono',monospace;">${m.products.length}</td><td style="font-size:12px;">${m.products.map(p=>p.name).join(', ')}</td><td>${[...m.countries].join(', ')||'—'}</td><td style="font-size:12px;">${statuses}</td></tr>`;
+    });
+  }
+
+  document.getElementById('rpt-summary').innerHTML=summary;
+  document.getElementById('rpt-thead').innerHTML=thead;
+  document.getElementById('rpt-tbody').innerHTML=rows.join('');
+  document.getElementById('rpt-count').textContent=count+' record'+(count!==1?'s':'');
+  document.getElementById('rpt-empty').style.display=rows.length?'none':'block';
+  document.getElementById('rpt-table').style.display=rows.length?'':'none';
+}
+
+function exportReportPDF(){
+  const title=document.getElementById('rpt-title').textContent;
+  const table=document.getElementById('rpt-table');
+  const summary=document.getElementById('rpt-summary').innerHTML;
+  const dateLabel=document.getElementById('rpt-date-label').textContent;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#1a1a2e;margin:32px;}
+    h1{font-size:20px;color:#1e3a8a;margin-bottom:4px;}
+    .meta{font-size:11px;color:#666;margin-bottom:16px;}
+    .stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+    .stat{background:#e8eef7;border-radius:8px;padding:10px 16px;text-align:center;min-width:80px;}
+    .stat-val{font-size:20px;font-weight:700;color:#1e3a8a;}
+    .stat-lbl{font-size:10px;color:#666;margin-top:2px;}
+    table{width:100%;border-collapse:collapse;margin-top:8px;}
+    th{background:#1e3a8a;color:#fff;padding:8px 10px;text-align:left;font-size:11px;}
+    td{padding:7px 10px;border-bottom:1px solid #e0e0e0;font-size:11px;}
+    tr:nth-child(even){background:#f5f8ff;}
+    .footer{margin-top:24px;font-size:10px;color:#999;text-align:right;}
+  </style></head><body>
+  <h1>${title}</h1>
+  <div class="meta">Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} · ${dateLabel} · DAF Holding — RA Command</div>
+  <div class="stats">${summary.replace(/style="[^"]*"/g,'').replace(/class="[^"]*"/g,'')}</div>
+  ${table.outerHTML}
+  <div class="footer">RA Command · DAF Holding · Confidential</div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(()=>{w.print();},600);
+}
+
+function exportReportExcel(){
+  const title=document.getElementById('rpt-title').textContent;
+  const thead=document.getElementById('rpt-thead');
+  const tbody=document.getElementById('rpt-tbody');
+  // Build CSV
+  const headers=Array.from(thead.querySelectorAll('th')).map(th=>'"'+th.textContent.trim()+'"').join(',');
+  const rowsCSV=Array.from(tbody.querySelectorAll('tr')).map(tr=>
+    Array.from(tr.querySelectorAll('td')).map(td=>'"'+td.textContent.trim().replace(/"/g,'""')+'"').join(',')
+  ).join('\n');
+  const csv='\uFEFF'+title+'\n'+new Date().toLocaleDateString()+'\n\n'+headers+'\n'+rowsCSV;
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=title.replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📊','Report exported as Excel/CSV');
+}
 
 // ── PROJECTS ─────────────────────────────────────────────────────────────────
 let pdFilter = 'all';
