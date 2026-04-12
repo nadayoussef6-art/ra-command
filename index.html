@@ -21,11 +21,11 @@
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
   .app { display: flex; height: 100vh; overflow: hidden; }
 
-  .sidebar { width: 220px; min-width: 220px; background: #0f1f3d; display: flex; flex-direction: column; overflow-y: auto; }
-  .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .sidebar { width: 220px; min-width: 220px; background: #0f1f3d; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; }
+  .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,.08); flex-shrink: 0; }
   .sidebar-logo h1 { font-family: 'DM Serif Display', serif; font-size: 20px; color: #fff; letter-spacing: -.3px; }
   .sidebar-logo span { font-family: 'DM Mono', monospace; font-size: 9px; color: rgba(255,255,255,.4); letter-spacing: 2px; text-transform: uppercase; display: block; margin-top: 4px; }
-  .sidebar-nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+  .sidebar-nav { padding: 16px 12px; flex: 1; overflow-y: auto; min-height: 0; }
   .nav-section-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.8px; text-transform: uppercase; color: rgba(255,255,255,.3); padding: 0 8px; margin-bottom: 6px; margin-top: 16px; }
   .nav-section-label:first-child { margin-top: 0; }
   .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius); cursor: pointer; color: rgba(255,255,255,.6); font-size: 13.5px; transition: all .15s; user-select: none; }
@@ -34,7 +34,7 @@
   .nav-icon { font-size: 15px; width: 18px; text-align: center; }
   .nav-badge { margin-left: auto; background: rgba(255,255,255,.12); color: rgba(255,255,255,.7); font-family: 'DM Mono', monospace; font-size: 10px; padding: 1px 6px; border-radius: 20px; }
   .nav-item.active .nav-badge { background: rgba(255,255,255,.25); color: #fff; }
-  .sidebar-footer { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.08); font-size: 11px; color: rgba(255,255,255,.35); display: flex; align-items: center; gap: 6px; }
+  .sidebar-footer { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.08); font-size: 11px; color: rgba(255,255,255,.35); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #666; transition: background .3s; flex-shrink: 0; }
   .sync-dot.online { background: #4caf50; }
   .sync-dot.syncing { background: var(--gold); animation: pulse .8s infinite; }
