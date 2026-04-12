@@ -6,6 +6,7 @@
 <title>RA Command — Regulatory Affairs Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #f0f4fb; --surface: #ffffff; --surface2: #e8eef7; --border: #c8d4e8; --border-strong: #8fa3c8;
@@ -312,6 +313,7 @@
     <nav class="sidebar-nav">
       <div class="nav-section-label">Overview</div>
       <div class="nav-item active" onclick="navigate('dashboard',this)"><span class="nav-icon">⬡</span> Dashboard</div>
+      <div class="nav-item" onclick="navigate('kpi',this)"><span class="nav-icon">📈</span> KPI Dashboard</div>
       <div class="nav-section-label">Management</div>
       <div class="nav-item" onclick="navigate('projects',this)"><span class="nav-icon">◉</span> Projects <span class="nav-badge" id="proj-badge">0</span></div>
       <div class="nav-item" onclick="navigate('tasks',this)"><span class="nav-icon">✓</span> Tasks <span class="nav-badge" id="task-badge">0</span></div>
@@ -526,6 +528,45 @@
         </div>
       </div>
 
+
+
+      <!-- KPI DASHBOARD -->
+      <div class="page" id="page-kpi">
+        <div style="padding:24px;max-width:1200px;">
+
+          <!-- Section: Tasks KPIs -->
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Operational — Tasks</div>
+          <div class="stats-row" id="kpi-tasks-row" style="margin-bottom:24px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+            <div class="panel"><div class="panel-header"><div class="panel-title">Tasks by Status</div></div><div style="padding:16px;"><canvas id="kpi-tasks-status-chart" height="200"></canvas></div></div>
+            <div class="panel"><div class="panel-header"><div class="panel-title">Tasks by Priority</div></div><div style="padding:16px;"><canvas id="kpi-tasks-priority-chart" height="200"></canvas></div></div>
+          </div>
+
+          <!-- Section: Submissions KPIs -->
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Submissions Pipeline</div>
+          <div class="stats-row" id="kpi-subs-row" style="margin-bottom:24px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+            <div class="panel"><div class="panel-header"><div class="panel-title">Submissions by Status</div></div><div style="padding:16px;"><canvas id="kpi-subs-status-chart" height="200"></canvas></div></div>
+            <div class="panel"><div class="panel-header"><div class="panel-title">Submissions by Type</div></div><div style="padding:16px;"><canvas id="kpi-subs-type-chart" height="200"></canvas></div></div>
+          </div>
+
+          <!-- Section: Products KPIs -->
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Products Registration</div>
+          <div class="stats-row" id="kpi-prods-row" style="margin-bottom:24px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+            <div class="panel"><div class="panel-header"><div class="panel-title">Products by Registration Status</div></div><div style="padding:16px;"><canvas id="kpi-prods-status-chart" height="200"></canvas></div></div>
+            <div class="panel"><div class="panel-header"><div class="panel-title">Products by Category</div></div><div style="padding:16px;"><canvas id="kpi-prods-cat-chart" height="200"></canvas></div></div>
+          </div>
+
+          <!-- Section: Projects KPIs -->
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Project Progress</div>
+          <div class="stats-row" id="kpi-proj-row" style="margin-bottom:24px;"></div>
+          <div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:28px;">
+            <div class="panel"><div class="panel-header"><div class="panel-title">Tasks Completion % per Project</div></div><div style="padding:16px;"><canvas id="kpi-proj-progress-chart" height="160"></canvas></div></div>
+          </div>
+
+        </div>
+      </div>
 
       <!-- REPORTS -->
       <div class="page" id="page-reports">
@@ -883,8 +924,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -897,13 +938,14 @@ function navigate(page,el){
   renderAll();
   if(page==='notifications') applyNotifUI();
   if(page==='reports'){ initReportFilters(); renderReport(); }
+  if(page==='kpi') renderKPI();
 }
 function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();}
 function setTaskFilter(f,el){taskFilter=f;document.querySelectorAll('#page-tasks .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks();}
 function setSubFilter(f,el){subFilter=f;document.querySelectorAll('#page-submissions .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();}
 function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
@@ -1253,7 +1295,11 @@ async function uploadFiles(wfId){
       });
       const data = await res.json();
       if(data.error){ showToast('❌','Upload failed: '+data.error.message); console.error('Cloudinary error:', data.error); continue; }
-      uploaded.push({name:file.name, url:data.secure_url, public_id:data.public_id});
+      // Force correct delivery URL for all file types
+      const resType = data.resource_type || 'raw';
+      const pubId = data.public_id;
+      const publicUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/${resType}/upload/${pubId}`;
+      uploaded.push({name:file.name, url:publicUrl, public_id:pubId});
     } catch(e) {
       showToast('❌','Upload failed: '+e.message);
       console.error('Upload exception:', e);
@@ -1443,6 +1489,165 @@ async function sendNotificationEmails(){
 }
 
 
+
+
+// ── KPI DASHBOARD ─────────────────────────────────────────────────────────────
+let kpiCharts = {};
+
+function destroyChart(id){
+  if(kpiCharts[id]){ kpiCharts[id].destroy(); delete kpiCharts[id]; }
+}
+
+function kpiStatCard(val, label, sub, color){
+  return `<div class="stat-card" style="border-top:3px solid ${color};flex:1;min-width:140px;">
+    <div class="stat-label">${label}</div>
+    <div class="stat-value" style="color:${color};">${val}</div>
+    ${sub?`<div class="stat-sub">${sub}</div>`:''}
+  </div>`;
+}
+
+function makeDonut(id, labels, data, colors){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  kpiCharts[id] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets:[{ data, backgroundColor:colors, borderWidth:2, borderColor:'#fff' }] },
+    options: { responsive:true, plugins:{ legend:{ position:'right', labels:{ font:{size:11}, padding:12 } } }, cutout:'60%' }
+  });
+}
+
+function makeBar(id, labels, data, colors, horizontal){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  kpiCharts[id] = new Chart(ctx, {
+    type: horizontal ? 'bar' : 'bar',
+    data: { labels, datasets:[{ data, backgroundColor:colors, borderRadius:4, borderSkipped:false }] },
+    options: {
+      indexAxis: horizontal ? 'y' : 'x',
+      responsive:true,
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{ grid:{display:false}, ticks:{font:{size:11}} }, y:{ grid:{color:'rgba(0,0,0,.05)'}, ticks:{font:{size:11}} } }
+    }
+  });
+}
+
+function renderKPI(){
+  if(currentPage !== 'kpi') return;
+  const now = new Date(); now.setHours(0,0,0,0);
+
+  // ── TASKS ──
+  const allTasks = tasks;
+  const openT = allTasks.filter(t=>t.status==='open').length;
+  const inprogT = allTasks.filter(t=>t.status==='in-progress').length;
+  const blockedT = allTasks.filter(t=>t.status==='blocked').length;
+  const doneT = allTasks.filter(t=>t.status==='done').length;
+  const overdueT = allTasks.filter(t=>t.status!=='done'&&t.due&&new Date(t.due)<now).length;
+  const totalT = allTasks.length;
+  const completionRate = totalT ? Math.round(doneT/totalT*100) : 0;
+  const highPrio = allTasks.filter(t=>t.priority==='high'&&t.status!=='done').length;
+
+  document.getElementById('kpi-tasks-row').innerHTML =
+    kpiStatCard(completionRate+'%','Completion Rate',doneT+' of '+totalT+' done','#1e3a8a') +
+    kpiStatCard(overdueT,'Overdue Tasks',overdueT>0?'Needs attention':'All on track',overdueT>0?'#c0392b':'#2d6a2d') +
+    kpiStatCard(blockedT,'Blocked',blockedT+' tasks blocked',blockedT>0?'#c05800':'#2d6a2d') +
+    kpiStatCard(highPrio,'High Priority Open',highPrio+' urgent tasks','#b8860b');
+
+  makeDonut('kpi-tasks-status-chart',
+    ['Open','In Progress','Blocked','Done'],
+    [openT, inprogT, blockedT, doneT],
+    ['#1e3a8a','#b8860b','#c05800','#2d6a2d']
+  );
+  const hiP=allTasks.filter(t=>t.priority==='high').length;
+  const medP=allTasks.filter(t=>t.priority==='medium').length;
+  const lowP=allTasks.filter(t=>t.priority==='low').length;
+  makeDonut('kpi-tasks-priority-chart',
+    ['High','Medium','Low'],
+    [hiP, medP, lowP],
+    ['#c0392b','#b8860b','#2d6a2d']
+  );
+
+  // ── SUBMISSIONS ──
+  const allSubs = submissions;
+  const prepS = allSubs.filter(s=>s.status==='preparation').length;
+  const subS = allSubs.filter(s=>s.status==='submitted').length;
+  const revS = allSubs.filter(s=>s.status==='review').length;
+  const appS = allSubs.filter(s=>s.status==='approved').length;
+  const holdS = allSubs.filter(s=>s.status==='hold').length;
+  const withS = allSubs.filter(s=>s.status==='withdrawn').length;
+  const approvalRate = allSubs.length ? Math.round(appS/allSubs.length*100) : 0;
+
+  document.getElementById('kpi-subs-row').innerHTML =
+    kpiStatCard(allSubs.length,'Total Submissions','All time','#1e3a8a') +
+    kpiStatCard(approvalRate+'%','Approval Rate',appS+' approved','#2d6a2d') +
+    kpiStatCard(revS,'Under Review','Active reviews','#b8860b') +
+    kpiStatCard(appS,'Approved',appS+' submissions','#2d6a2d');
+
+  makeDonut('kpi-subs-status-chart',
+    ['In Prep','Submitted','Under Review','Approved','On Hold','Withdrawn'],
+    [prepS, subS, revS, appS, holdS, withS],
+    ['#7a7368','#1e3a8a','#b8860b','#2d6a2d','#c05800','#c0392b']
+  );
+  const typeMap = {};
+  allSubs.forEach(s=>{ typeMap[s.type]=(typeMap[s.type]||0)+1; });
+  const typeColors = ['#1e3a8a','#2d6a2d','#b8860b','#c05800','#5c2d91','#c0392b'];
+  makeDonut('kpi-subs-type-chart',
+    Object.keys(typeMap), Object.values(typeMap),
+    typeColors.slice(0,Object.keys(typeMap).length)
+  );
+
+  // ── PRODUCTS ──
+  const allProds = products;
+  const regP = allProds.filter(p=>p.regStatus==='Registered').length;
+  const pendP = allProds.filter(p=>p.regStatus==='Pending Registration').length;
+  const expP = allProds.filter(p=>p.regStatus==='Expired').length;
+  const expiringP = allProds.filter(p=>p.renewalDate&&(new Date(p.renewalDate)-now)/86400000<=60&&(new Date(p.renewalDate)-now)/86400000>=0).length;
+  const complianceRate = allProds.length ? Math.round(regP/allProds.length*100) : 0;
+
+  document.getElementById('kpi-prods-row').innerHTML =
+    kpiStatCard(allProds.length,'Total Products','In portfolio','#1e3a8a') +
+    kpiStatCard(complianceRate+'%','Registration Compliance',regP+' registered','#2d6a2d') +
+    kpiStatCard(expiringP,'Expiring ≤60 Days',expiringP>0?'Action needed':'All clear',expiringP>0?'#c05800':'#2d6a2d') +
+    kpiStatCard(expP,'Expired',expP>0?'Needs renewal':'None expired',expP>0?'#c0392b':'#2d6a2d');
+
+  const regStatusMap = {};
+  allProds.forEach(p=>{ const k=p.regStatus||'Not Set'; regStatusMap[k]=(regStatusMap[k]||0)+1; });
+  makeDonut('kpi-prods-status-chart',
+    Object.keys(regStatusMap), Object.values(regStatusMap),
+    ['#2d6a2d','#1e3a8a','#b8860b','#c05800','#c0392b','#7a7368']
+  );
+  const catMap = {};
+  allProds.forEach(p=>{ const k=(p.category||'Other').split('(')[0].trim(); catMap[k]=(catMap[k]||0)+1; });
+  makeBar('kpi-prods-cat-chart',
+    Object.keys(catMap), Object.values(catMap),
+    ['#1e3a8a','#2d6a2d','#b8860b','#c05800','#5c2d91','#c0392b','#1a6b5e'],
+    false
+  );
+
+  // ── PROJECTS ──
+  const allProj = projects;
+  const activeProj = allProj.filter(p=>p.status==='active').length;
+  const completedProj = allProj.filter(p=>p.status==='completed').length;
+  const totalProjTasks = tasks.filter(t=>t.projLink).length;
+  const doneProjTasks = tasks.filter(t=>t.projLink&&t.status==='done').length;
+  const projCompRate = totalProjTasks ? Math.round(doneProjTasks/totalProjTasks*100) : 0;
+
+  document.getElementById('kpi-proj-row').innerHTML =
+    kpiStatCard(allProj.length,'Total Projects','','#1e3a8a') +
+    kpiStatCard(activeProj,'Active Projects','In progress','#b8860b') +
+    kpiStatCard(completedProj,'Completed','','#2d6a2d') +
+    kpiStatCard(projCompRate+'%','Overall Task Completion',doneProjTasks+' of '+totalProjTasks+' tasks done','#1e3a8a');
+
+  // Bar chart: completion % per project
+  const projLabels = allProj.map(p=>p.name.length>20?p.name.slice(0,18)+'…':p.name);
+  const projData = allProj.map(p=>{
+    const pt = tasks.filter(t=>t.projLink===p.id);
+    return pt.length ? Math.round(tasks.filter(t=>t.projLink===p.id&&t.status==='done').length/pt.length*100) : 0;
+  });
+  const projColors = projData.map(v=>v>=75?'#2d6a2d':v>=40?'#b8860b':'#c0392b');
+  makeBar('kpi-proj-progress-chart', projLabels, projData, projColors, true);
+}
 
 // ── REPORTS ──────────────────────────────────────────────────────────────────
 function initReportFilters(){
