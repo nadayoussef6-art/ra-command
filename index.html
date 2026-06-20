@@ -162,7 +162,9 @@
   .action-sub { font-size: 12px; color: var(--text-muted); }
 
   .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px; }
-  .product-card { border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: all .15s; background: var(--surface); }
+  .detail-label { font-family: 'DM Mono', monospace; font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+  .detail-value { font-size: 13.5px; color: var(--text); font-weight: 500; }
+  .product-card { border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: all .15s; background: var(--surface); cursor: pointer; }
   .product-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
   .product-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
   .product-name { font-family: 'DM Serif Display', serif; font-size: 16px; }
@@ -747,7 +749,30 @@
       <input type="hidden" id="sub-edit-id">
       <div class="form-row">
         <div class="form-group"><label>Submission ID *</label><input type="text" id="sub-id-field" placeholder="e.g. SUB-2024-001"></div>
-        <div class="form-group"><label>Type</label><select id="sub-type"><option>New Registration</option><option>Renewal</option><option>Variation</option><option>Appeal</option><option>Other</option></select></div>
+        <div class="form-group"><label>Type</label><select id="sub-type">
+  <option>New Registration</option>
+  <option>Renewal</option>
+  <option>Variation</option>
+  <option>Appeal</option>
+  <option>Importation Approval</option>
+  <option>Box Approval</option>
+  <option>Nama Approval</option>
+  <option>Pricing Approval</option>
+  <option>PV Approval</option>
+  <option>CTD File Approval</option>
+  <option>Medical Device Initial File</option>
+  <option>Medical Device Registration File</option>
+  <option>Other</option>
+</select></div>
+        <div class="form-group"><label>Category</label><select id="sub-category" onchange="updateSubClassification()">
+  <option value="">— Select —</option>
+  <option>Drug</option>
+  <option>MD</option>
+  <option>IVD</option>
+</select></div>
+        <div class="form-group"><label>Classification</label><select id="sub-classification">
+  <option value="">— Select Category First —</option>
+</select></div>
         <div class="form-group full"><label>Product Name *</label>
           <input type="text" id="sub-product" placeholder="Product / Drug name" list="sub-product-list" autocomplete="off">
           <datalist id="sub-product-list"></datalist>
@@ -776,7 +801,20 @@
       <div class="form-row">
         <div class="form-group"><label>Product Name *</label><input type="text" id="prod-name" placeholder="Brand or generic name"></div>
         <div class="form-group"><label>Internal ID</label><input type="text" id="prod-internal-id" placeholder="e.g. PRD-001"></div>
-        <div class="form-group"><label>Category</label><select id="prod-category"><option>Drug (Small Molecule)</option><option>Biologic</option><option>Medical Device (Class I)</option><option>Medical Device (Class II)</option><option>Medical Device (Class III)</option><option>Combination Product</option><option>Generic Drug</option><option>OTC Drug</option></select></div>
+        <div class="form-group"><label>Category</label><select id="prod-category" onchange="updateProdClassification()">
+  <option value="">— Select —</option>
+  <option>Drug</option>
+  <option>MD</option>
+  <option>IVD</option>
+  <option>Drug (Small Molecule)</option>
+  <option>Biologic</option>
+  <option>Combination Product</option>
+  <option>Generic Drug</option>
+  <option>OTC Drug</option>
+</select></div>
+        <div class="form-group"><label>Classification</label><select id="prod-classification">
+  <option value="">— Select Category First —</option>
+</select></div>
         <div class="form-group"><label>Therapeutic Area</label><input type="text" id="prod-ta" placeholder="e.g. Oncology, Cardiology"></div>
         <div class="form-group"><label>Development Phase</label><select id="prod-phase"><option>Preclinical</option><option>Phase I</option><option>Phase II</option><option>Phase III</option><option>Pre-Submission</option><option>Under Review</option><option>Approved / Marketed</option><option>Post-Market</option></select></div>
         <div class="form-group"><label>Product Owner</label><input type="text" id="prod-owner" placeholder="Full name"></div>
@@ -891,8 +929,8 @@ function setSyncStatus(s){const dot=document.getElementById('sync-dot'),lbl=docu
 // ── MAPPERS ──────────────────────────────────────────────────────────────────
 const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',projLink:r.proj_link||'',notes:r.notes||''});
 const mPrj=r=>({id:r.id,name:r.name,status:r.status||'active',responsible:r.responsible||'',prodLink:r.prod_link||'',subLink:r.sub_link||'',desc:r.description||''});
-const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',notes:r.notes||''});
-const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||''});
+const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',category:r.category||'',classification:r.classification||'',notes:r.notes||''});
+const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',classification:r.classification||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||''});
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadAll() {
@@ -1047,7 +1085,7 @@ function renderSubmissions(){
   const tb=document.getElementById('subs-tbody'),em=document.getElementById('subs-empty');
   document.getElementById('sub-panel-count').textContent=submissions.length+' submission'+(submissions.length!==1?'s':'');
   if(!f.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';
-  tb.innerHTML=f.map(s=>`<tr><td><span style="font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;">${s.id}</span></td><td><span style="font-weight:500;">${s.product}</span></td><td><span class="type-pill">${s.type}</span></td><td>${sBadge(s.status)}</td><td><span class="due-date due-ok">${fmt(s.date)}</span></td><td><span class="due-date ${dueCls(s.pdufa)}">${fmt(s.pdufa)}</span></td><td><div class="assignee">${s.lead?`<div class="avatar" style="background:${aColor(s.lead)};width:22px;height:22px;font-size:9px;">${ini(s.lead)}</div><span>${s.lead}</span>`:'<span style="color:var(--text-muted)">—</span>'}</div></td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editSub('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="deleteSub('${s.id}')">Del</button></div></td></tr>`).join('');
+  tb.innerHTML=f.map(s=>`<tr onclick="openSubDetail('${s.id}')" style="cursor:pointer;"><td><span style="font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;">${s.id}</span></td><td><span style="font-weight:500;">${s.product}</span></td><td><span class="type-pill">${s.type}</span></td><td>${sBadge(s.status)}</td><td><span class="due-date due-ok">${fmt(s.date)}</span></td><td><span class="due-date ${dueCls(s.pdufa)}">${fmt(s.pdufa)}</span></td><td><div class="assignee">${s.lead?`<div class="avatar" style="background:${aColor(s.lead)};width:22px;height:22px;font-size:9px;">${ini(s.lead)}</div><span>${s.lead}</span>`:'<span style="color:var(--text-muted)">—</span>'}</div></td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editSub('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="deleteSub('${s.id}')">Del</button></div></td></tr>`).join('');
 }
 
 function populateProdFilterDropdowns(){
@@ -1079,7 +1117,7 @@ function renderProducts(){
     const ps=submissions.filter(s=>s.product===p.name);
     const pt=tasks.filter(t=>t.prodLink===p.id&&t.status!=='done');
     const rw=p.renewalDate&&(new Date(p.renewalDate)-now)/86400000<=60;
-    return `<div class="product-card"><div class="product-card-header"><div><div class="product-name">${p.name}</div><div class="product-id">${p.internalId||p.id.slice(0,8).toUpperCase()}</div></div><button class="btn btn-ghost btn-sm" onclick="editProd('${p.id}')" style="padding:4px 8px;font-size:11px;">Edit</button><button class="btn btn-ghost btn-sm" onclick="deleteProd('${p.id}')" style="padding:4px 8px;font-size:11px;color:var(--accent);">Del</button></div>
+    return `<div class="product-card" onclick="openProdDetail('${p.id}')"><div class="product-card-header"><div><div class="product-name">${p.name}</div><div class="product-id">${p.internalId||p.id.slice(0,8).toUpperCase()}</div></div><button class="btn btn-ghost btn-sm" onclick="editProd('${p.id}')" style="padding:4px 8px;font-size:11px;">Edit</button><button class="btn btn-ghost btn-sm" onclick="deleteProd('${p.id}')" style="padding:4px 8px;font-size:11px;color:var(--accent);">Del</button></div>
     <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${p.category?`<span class="type-pill" style="font-size:10px;">${p.category.split('(')[0].trim()}</span>`:''}${p.ta?`<span class="type-pill" style="font-size:10px;background:var(--teal-light);color:var(--teal);border-color:rgba(26,107,94,.15);">${p.ta}</span>`:''}${p.regStatus?`<span class="type-pill" style="font-size:10px;background:var(--surface2);border-color:var(--border);${rc(p.regStatus)}">${p.regStatus}</span>`:''}</div>
     <div class="product-meta">${p.regNo?`<div>🔖 Reg. No: <strong>${p.regNo}</strong></div>`:''}${p.renewalDate?`<div style="${rw?'color:var(--orange);font-weight:600;':''}">🗓 Renewal: ${fmt(p.renewalDate)}${rw?' ⚠️':''}</div>`:''}<div>📋 ${ps.length} submission${ps.length!==1?'s':''} · ✓ ${pt.length} open task${pt.length!==1?'s':''}</div><div>Phase: <strong>${p.phase||'—'}</strong></div>${p.country?`<div>🌍 Origin: <strong>${p.country}</strong></div>`:''}${p.refType?`<div>📌 <strong>${p.refType}</strong></div>`:''}${p.owner?`<div>Owner: ${p.owner}</div>`:''}</div>
     ${ps.length?`<div class="product-subs">${ps.slice(0,3).map(s=>`<span class="badge ${sBadge(s.status).match(/badge-[a-z]+/)?.[0]||''}" style="font-size:10.5px;padding:2px 8px;">${s.id}</span>`).join('')}</div>`:''}</div>`;
@@ -1126,8 +1164,8 @@ function openSubModal(id){
   populateProjSelects();
   document.getElementById('sub-modal-title').textContent=id?'Edit Submission':'New Submission';
   document.getElementById('sub-edit-id').value=id||'';
-  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-proj-link').value=s.projLink||'';document.getElementById('sub-notes').value=s.notes||'';}
-  else{['sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';document.getElementById('sub-proj-link').value='';}
+  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-proj-link').value=s.projLink||'';document.getElementById('sub-category').value=s.category||'';updateSubClassification();document.getElementById('sub-classification').value=s.classification||'';document.getElementById('sub-notes').value=s.notes||'';}
+  else{['sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';document.getElementById('sub-proj-link').value='';document.getElementById('sub-category').value='';document.getElementById('sub-classification').value='';}
   document.getElementById('sub-modal').classList.add('open');
 }
 async function saveSubmission(){
@@ -1135,7 +1173,7 @@ async function saveSubmission(){
   if(!subId||!product){alert('Submission ID and Product are required.');return;}
   const btn=document.getElementById('sub-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('sub-edit-id').value;
-  const row={id:subId,product,type:document.getElementById('sub-type').value,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim()};
+  const row={id:subId,product,type:document.getElementById('sub-type').value,category:document.getElementById('sub-category').value||null,classification:document.getElementById('sub-classification').value||null,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim()};
   const{error}=editId?await db.from('submissions').update(row).eq('id',editId):await db.from('submissions').insert(row);
   btn.disabled=false;btn.textContent='Save Submission';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
@@ -1148,8 +1186,8 @@ async function deleteSub(id){if(!confirm('Delete this submission?'))return;setSy
 function openProdModal(id){
   document.getElementById('prod-modal-title').textContent=id?'Edit Product':'New Product';
   document.getElementById('prod-edit-id').value=id||'';
-  if(id){const p=products.find(p=>p.id===id);document.getElementById('prod-name').value=p.name;document.getElementById('prod-internal-id').value=p.internalId||'';document.getElementById('prod-category').value=p.category||'Drug (Small Molecule)';document.getElementById('prod-ta').value=p.ta||'';document.getElementById('prod-phase').value=p.phase||'Preclinical';document.getElementById('prod-owner').value=p.owner||'';document.getElementById('prod-reg-status').value=p.regStatus||'';document.getElementById('prod-reg-no').value=p.regNo||'';document.getElementById('prod-renewal-date').value=p.renewalDate||'';document.getElementById('prod-country').value=p.country||'';document.getElementById('prod-ref-type').value=p.refType||'';document.getElementById('prod-desc').value=p.desc||'';}
-  else{['prod-name','prod-internal-id','prod-ta','prod-owner','prod-reg-no','prod-renewal-date','prod-country','prod-desc'].forEach(f=>document.getElementById(f).value='');document.getElementById('prod-reg-status').value='';document.getElementById('prod-ref-type').value='';document.getElementById('prod-category').value='Drug (Small Molecule)';document.getElementById('prod-phase').value='Preclinical';}
+  if(id){const p=products.find(p=>p.id===id);document.getElementById('prod-name').value=p.name;document.getElementById('prod-internal-id').value=p.internalId||'';document.getElementById('prod-category').value=p.category||'';updateProdClassification();document.getElementById('prod-classification').value=p.classification||'';document.getElementById('prod-ta').value=p.ta||'';document.getElementById('prod-phase').value=p.phase||'Preclinical';document.getElementById('prod-owner').value=p.owner||'';document.getElementById('prod-reg-status').value=p.regStatus||'';document.getElementById('prod-reg-no').value=p.regNo||'';document.getElementById('prod-renewal-date').value=p.renewalDate||'';document.getElementById('prod-country').value=p.country||'';document.getElementById('prod-ref-type').value=p.refType||'';document.getElementById('prod-desc').value=p.desc||'';}
+  else{['prod-name','prod-internal-id','prod-ta','prod-owner','prod-reg-no','prod-renewal-date','prod-country','prod-desc'].forEach(f=>document.getElementById(f).value='');document.getElementById('prod-reg-status').value='';document.getElementById('prod-ref-type').value='';document.getElementById('prod-category').value='';document.getElementById('prod-classification').value='';document.getElementById('prod-phase').value='Preclinical';}
   document.getElementById('prod-modal').classList.add('open');
 }
 async function saveProduct(){
@@ -1158,7 +1196,7 @@ async function saveProduct(){
   const btn=document.getElementById('prod-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('prod-edit-id').value;
   const id=editId||uid();
-  const row={id,name,internal_id:document.getElementById('prod-internal-id').value.trim(),category:document.getElementById('prod-category').value,therapeutic_area:document.getElementById('prod-ta').value.trim(),phase:document.getElementById('prod-phase').value,owner:document.getElementById('prod-owner').value.trim(),reg_status:document.getElementById('prod-reg-status').value||null,reg_no:document.getElementById('prod-reg-no').value.trim(),renewal_date:document.getElementById('prod-renewal-date').value||null,country:document.getElementById('prod-country').value.trim()||null,ref_type:document.getElementById('prod-ref-type').value||null,description:document.getElementById('prod-desc').value.trim()};
+  const row={id,name,internal_id:document.getElementById('prod-internal-id').value.trim(),category:document.getElementById('prod-category').value,classification:document.getElementById('prod-classification').value||null,therapeutic_area:document.getElementById('prod-ta').value.trim(),phase:document.getElementById('prod-phase').value,owner:document.getElementById('prod-owner').value.trim(),reg_status:document.getElementById('prod-reg-status').value||null,reg_no:document.getElementById('prod-reg-no').value.trim(),renewal_date:document.getElementById('prod-renewal-date').value||null,country:document.getElementById('prod-country').value.trim()||null,ref_type:document.getElementById('prod-ref-type').value||null,description:document.getElementById('prod-desc').value.trim()};
   const{error}=editId?await db.from('products').update(row).eq('id',editId):await db.from('products').insert(row);
   btn.disabled=false;btn.textContent='Save Product';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
@@ -1490,6 +1528,130 @@ async function sendNotificationEmails(){
 
 
 
+
+
+// ── CLASSIFICATION HELPERS ────────────────────────────────────────────────────
+const CLASSIFICATIONS = {
+  'Drug': [],
+  'MD': ['MD (US): Class I','MD (US): Class II','MD (US): Class III','MD (EU): Class I','MD (EU): Class IIa','MD (EU): Class IIb','MD (EU): Class III'],
+  'IVD': ['IVD (EU): Class A','IVD (EU): Class B','IVD (EU): Class C','IVD (EU): Class D'],
+  'Drug (Small Molecule)': [],
+  'Biologic': [],
+  'Combination Product': [],
+  'Generic Drug': [],
+  'OTC Drug': [],
+};
+
+function updateSubClassification(){
+  const cat = document.getElementById('sub-category')?.value||'';
+  const sel = document.getElementById('sub-classification');
+  if(!sel) return;
+  const opts = CLASSIFICATIONS[cat]||[];
+  sel.innerHTML = opts.length
+    ? '<option value="">— Select —</option>'+opts.map(o=>`<option>${o}</option>`).join('')
+    : '<option value="">— Not Applicable —</option>';
+}
+
+function updateProdClassification(){
+  const cat = document.getElementById('prod-category')?.value||'';
+  const sel = document.getElementById('prod-classification');
+  if(!sel) return;
+  const opts = CLASSIFICATIONS[cat]||[];
+  sel.innerHTML = opts.length
+    ? '<option value="">— Select —</option>'+opts.map(o=>`<option>${o}</option>`).join('')
+    : '<option value="">— Not Applicable —</option>';
+}
+
+// ── DETAIL VIEW MODALS ────────────────────────────────────────────────────────
+function openTaskDetail(id){
+  const t = tasks.find(t=>t.id===id);
+  if(!t) return;
+  const proj = projects.find(p=>p.id===t.projLink);
+  const prod = products.find(p=>p.id===t.prodLink);
+  const sub = submissions.find(s=>s.id===t.subLink);
+  const now = new Date(); now.setHours(0,0,0,0);
+  const overdue = t.status!=='done'&&t.due&&new Date(t.due)<now;
+  document.getElementById('detail-modal-content').innerHTML = `
+    <div class="modal-header" style="background:var(--surface2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+      <h2 style="font-size:17px;">${t.title}</h2>
+      <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div><div class="detail-label">Status</div><div>${tBadge(t.status)}</div></div>
+      <div><div class="detail-label">Priority</div><div>${pBadge(t.priority)}</div></div>
+      <div><div class="detail-label">Assignee</div><div class="detail-value">${t.assignee||'—'}</div></div>
+      <div><div class="detail-label">Due Date</div><div class="detail-value" style="${overdue?'color:var(--accent);font-weight:600;':''}">${fmt(t.due)||'—'}${overdue?' ⚠️ Overdue':''}</div></div>
+      ${proj?`<div><div class="detail-label">Project</div><div class="detail-value">📁 ${proj.name}</div></div>`:''}
+      ${prod?`<div><div class="detail-label">Linked Product</div><div class="detail-value">📦 ${prod.name}</div></div>`:''}
+      ${sub?`<div><div class="detail-label">Linked Submission</div><div class="detail-value">📋 ${sub.id}</div></div>`:''}
+      ${t.desc?`<div style="grid-column:1/-1;"><div class="detail-label">Description</div><div class="detail-value" style="white-space:pre-wrap;">${t.desc}</div></div>`:''}
+      ${t.notes?`<div style="grid-column:1/-1;"><div class="detail-label">Notes</div><div class="detail-value" style="white-space:pre-wrap;">${t.notes}</div></div>`:''}
+    </div>
+    <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('detail-modal');editTask('${t.id}')">Edit</button>
+    </div>`;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function openSubDetail(id){
+  const s = submissions.find(s=>s.id===id);
+  if(!s) return;
+  const proj = projects.find(p=>p.id===s.projLink);
+  document.getElementById('detail-modal-content').innerHTML = `
+    <div class="modal-header" style="background:var(--surface2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+      <h2 style="font-size:17px;font-family:'DM Mono',monospace;">${s.id}</h2>
+      <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div><div class="detail-label">Product</div><div class="detail-value">${s.product||'—'}</div></div>
+      <div><div class="detail-label">Type</div><div><span class="type-pill">${s.type}</span></div></div>
+      <div><div class="detail-label">Status</div><div>${sBadge(s.status)}</div></div>
+      <div><div class="detail-label">Regulatory Lead</div><div class="detail-value">${s.lead||'—'}</div></div>
+      ${s.category?`<div><div class="detail-label">Category</div><div class="detail-value">${s.category}</div></div>`:''}
+      ${s.classification?`<div><div class="detail-label">Classification</div><div class="detail-value">${s.classification}</div></div>`:''}
+      <div><div class="detail-label">Submission Date</div><div class="detail-value">${fmt(s.date)||'—'}</div></div>
+      <div><div class="detail-label">Target Date</div><div class="detail-value ${dueCls(s.pdufa)}">${fmt(s.pdufa)||'—'}</div></div>
+      ${proj?`<div style="grid-column:1/-1;"><div class="detail-label">Project</div><div class="detail-value">📁 ${proj.name}</div></div>`:''}
+      ${s.notes?`<div style="grid-column:1/-1;"><div class="detail-label">Notes</div><div class="detail-value" style="white-space:pre-wrap;">${s.notes}</div></div>`:''}
+    </div>
+    <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('detail-modal');editSub('${s.id}')">Edit</button>
+    </div>`;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function openProdDetail(id){
+  const p = products.find(p=>p.id===id);
+  if(!p) return;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const expiring = p.renewalDate&&(new Date(p.renewalDate)-now)/86400000<=60;
+  document.getElementById('detail-modal-content').innerHTML = `
+    <div class="modal-header" style="background:var(--surface2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+      <h2 style="font-size:17px;">${p.name}</h2>
+      <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div><div class="detail-label">Internal ID</div><div class="detail-value" style="font-family:'DM Mono',monospace;">${p.internalId||'—'}</div></div>
+      <div><div class="detail-label">Category</div><div class="detail-value">${p.category||'—'}</div></div>
+      ${p.classification?`<div><div class="detail-label">Classification</div><div class="detail-value">${p.classification}</div></div>`:''}
+      <div><div class="detail-label">Ref / Non-Ref</div><div class="detail-value">${p.refType||'—'}</div></div>
+      <div><div class="detail-label">Therapeutic Area</div><div class="detail-value">${p.ta||'—'}</div></div>
+      <div><div class="detail-label">Phase</div><div class="detail-value">${p.phase||'—'}</div></div>
+      <div><div class="detail-label">Registration Status</div><div class="detail-value">${p.regStatus||'—'}</div></div>
+      <div><div class="detail-label">Registration No.</div><div class="detail-value" style="font-family:'DM Mono',monospace;">${p.regNo||'—'}</div></div>
+      <div><div class="detail-label">Renewal Date</div><div class="detail-value" style="${expiring?'color:var(--orange);font-weight:600;':''}">${fmt(p.renewalDate)||'—'}${expiring?' ⚠️':''}</div></div>
+      <div><div class="detail-label">Country of Origin</div><div class="detail-value">${p.country||'—'}</div></div>
+      <div><div class="detail-label">Owner / Manufacturer</div><div class="detail-value">${p.owner||'—'}</div></div>
+      ${p.desc?`<div style="grid-column:1/-1;"><div class="detail-label">Description</div><div class="detail-value" style="white-space:pre-wrap;">${p.desc}</div></div>`:''}
+    </div>
+    <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('detail-modal');editProd('${p.id}')">Edit</button>
+    </div>`;
+  document.getElementById('detail-modal').classList.add('open');
+}
 
 // ── KPI DASHBOARD ─────────────────────────────────────────────────────────────
 let kpiCharts = {};
@@ -1837,7 +1999,14 @@ function exportReportPDF(){
   <div class="stats">${summary.replace(/style="[^"]*"/g,'').replace(/class="[^"]*"/g,'')}</div>
   ${table.outerHTML}
   <div class="footer">RA Command · DAF Holding · Confidential</div>
-  </body></html>`);
+  
+<!-- DETAIL VIEW MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" id="detail-modal-content" style="max-width:620px;padding:0;">
+  </div>
+</div>
+
+</body></html>`);
   w.document.close();
   setTimeout(()=>{w.print();},600);
 }
