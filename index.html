@@ -2328,7 +2328,7 @@ function doLogin(){
     if(user && user.password === password){
       errEl.classList.remove('show');
       setSession({ email, name: user.name, role: user.role||'viewer' });
-      showApp({ email, name: user.name });
+      showApp({ email, name: user.name, role: user.role||'viewer' });
     } else {
       errEl.textContent='Incorrect email or password.';
       errEl.classList.add('show');
