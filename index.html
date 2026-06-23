@@ -2561,4 +2561,144 @@ function renderPdTasks(){
     `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;margin-top:4px;">Tasks</div>`,
     pt.length ? pt.map(t=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
       <div style="flex:1;"><div style="font-weight:500;font-size:13.5px;">${t.title}</div>${t.due?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">Due: ${fmt(t.due)}</div>`:''}</div>
-      ${tBadge(t.status)}${pBadge
+      ${tBadge(t.status)}${pBadge(t.priority)}
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editTask('${t.id}')">Edit</button>
+    </div>`).join('') : `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">No tasks yet. Click "+ Add Task" to get started.</div>`,
+    ps.length ? `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px;">Submissions</div>`+ps.map(s=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;"><div style="flex:1;"><div style="font-weight:500;font-size:13px;">${s.id}</div><div style="font-size:11.5px;color:var(--text-muted);">${s.product} · ${s.type}</div></div>${sBadge(s.status)}</div>`).join('') : '',
+    pw.length ? `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px;">Workflows</div>`+pw.map(w=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;"><div style="font-weight:500;font-size:13px;">${w.title}</div><div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${w.stage}</div></div>`).join('') : ''
+  ].join('');
+}
+
+function setPdFilter(f,el){pdFilter=f;document.querySelectorAll('#pd-task-filters .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderPdTasks();}
+
+function closeProjDetail(){
+  document.getElementById('proj-detail-overlay').style.display='none';
+  document.getElementById('proj-detail-panel').style.display='none';
+  currentProjId=null;
+}
+
+function addTaskToProject(){
+  closeProjDetail();
+  openTaskModalForProject(currentProjId);
+}
+
+function openTaskModalForProject(projId){
+  openTaskModal();
+  setTimeout(()=>{
+    const sel=document.getElementById('task-proj-link');
+    if(sel&&projId) sel.value=projId;
+  },50);
+}
+
+function editProjFromDetail(){ const id=currentProjId; closeProjDetail(); openProjModal(id); }
+
+function populateProjSelects(){
+  const opts = '<option value="">— No Project —</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  ['task-proj-link','sub-proj-link','wf-proj-link'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
+  // Project filter dropdowns
+  const fopts = '<option value="">All Projects</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  ['task-filter-project','sub-filter-project','wf-filter-project'].forEach(id=>{const el=document.getElementById(id);if(el){const cur=el.value;el.innerHTML=fopts;el.value=cur;}});
+}
+
+function openProjModal(id){
+  document.getElementById('proj-modal-title').textContent = id?'Edit Project':'New Project';
+  document.getElementById('proj-edit-id').value = id||'';
+  document.getElementById('proj-prod-link').innerHTML='<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('proj-sub-link').innerHTML='<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  if(id){
+    const p=projects.find(p=>p.id===id);
+    document.getElementById('proj-name').value=p.name;
+    document.getElementById('proj-status').value=p.status||'active';
+    document.getElementById('proj-responsible').value=p.responsible||'';
+    document.getElementById('proj-prod-link').value=p.prodLink||'';
+    document.getElementById('proj-sub-link').value=p.subLink||'';
+    document.getElementById('proj-desc').value=p.desc||'';
+  } else {
+    ['proj-name','proj-responsible','proj-desc'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('proj-status').value='active';
+    document.getElementById('proj-prod-link').value='';
+    document.getElementById('proj-sub-link').value='';
+  }
+  document.getElementById('proj-modal').classList.add('open');
+}
+
+async function saveProject(){
+  const name=document.getElementById('proj-name').value.trim();
+  if(!name){alert('Project name is required.');return;}
+  const btn=document.getElementById('proj-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
+  const editId=document.getElementById('proj-edit-id').value;
+  const id=editId||uid();
+  const _prsession=getSession();
+  const row={id,name,status:document.getElementById('proj-status').value,responsible:document.getElementById('proj-responsible').value.trim(),prod_link:document.getElementById('proj-prod-link').value||null,sub_link:document.getElementById('proj-sub-link').value||null,description:document.getElementById('proj-desc').value.trim(),...(!editId&&{created_by:_prsession?.name||'Unknown',created_at_user:new Date().toISOString()})};
+  const{error}=editId?await db.from('projects').update(row).eq('id',editId):await db.from('projects').insert(row);
+  btn.disabled=false;btn.textContent='Save Project';
+  if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
+  closeModal('proj-modal');showToast('✓',editId?'Project updated':'Project created');setSyncStatus('online');
+}
+
+async function deleteProject(id){
+  if(!canDelete()){showToast('⚠️','Only admins can delete records.');return;}
+  if(!confirm('Delete this project? Tasks linked to it will remain but lose the project link.'))return;
+  setSyncStatus('syncing');
+  await db.from('projects').delete().eq('id',id);
+  setSyncStatus('online');showToast('🗑','Project deleted');
+}
+
+// ── SIMPLE AUTH ──────────────────────────────────────────────────────────────
+const USERS = {
+  'nada.youssef@dafholding.com':       { password: 'DAF@2026', name: 'Nada Youssef',        role: 'admin' },
+  'nesreen.abdelfattah@dafholding.com':{ password: 'DAF@2026', name: 'Nesreen Abdel Fattah', role: 'editor' },
+};
+// Role permissions
+const ROLE_CAN_DELETE = ['admin'];
+const ROLE_CAN_EDIT   = ['admin','editor'];
+const ROLE_CAN_ADD    = ['admin','editor'];
+function canDelete(){ const s=getSession(); return s&&ROLE_CAN_DELETE.includes(s.role); }
+function canEdit(){   const s=getSession(); return s&&ROLE_CAN_EDIT.includes(s.role); }
+function canAdd(){    const s=getSession(); return s&&ROLE_CAN_ADD.includes(s.role); }
+
+function getSession(){ try{ return JSON.parse(sessionStorage.getItem('ra_session')); }catch{ return null; } }
+function setSession(u){ sessionStorage.setItem('ra_session', JSON.stringify(u)); }
+function clearSession(){ sessionStorage.removeItem('ra_session'); }
+
+function initAuth(){
+  const s = getSession();
+  if(s){ showApp(s); }
+  else{ document.getElementById('login-screen').classList.remove('hidden'); }
+}
+
+function showApp(user){
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('main-app').style.display = 'flex';
+  const name = user.name || user.email;
+  const roleLabel = {'admin':'Admin','editor':'Editor','viewer':'Viewer'}[user.role||'viewer'];
+  document.getElementById('user-email-display').textContent = name + ' · ' + roleLabel;
+  const initials = name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  // Show admin-only nav
+  document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display = (user.role==='admin')?'':'none'; });
+  loadAll().then(()=>{ subscribeRealtime(); sendNotificationEmails(); });
+}
+
+function showLogin(){
+  clearSession();
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function doLogin(){ doLoginFromDB(); }
+function doLogout(){ showLogin(); }
+
+initAuth();
+</script>
+
+<!-- DETAIL VIEW MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" id="detail-modal-content" style="max-width:620px;padding:0;">
+  </div>
+</div>
+
+</body>
+</html>
