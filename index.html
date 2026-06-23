@@ -321,9 +321,9 @@
       <div class="nav-item" onclick="navigate('tasks',this)"><span class="nav-icon">✓</span> Tasks <span class="nav-badge" id="task-badge">0</span></div>
       <div class="nav-item" onclick="navigate('submissions',this)"><span class="nav-icon">◻</span> Submissions <span class="nav-badge" id="sub-badge">0</span></div>
       <div class="nav-item" onclick="navigate('products',this)"><span class="nav-icon">◈</span> Products <span class="nav-badge" id="prod-badge">0</span></div>
+      <div class="nav-item" onclick="navigate('contracts',this)"><span class="nav-icon">📄</span> Contracts</div>
       <div class="nav-section-label">Tools</div>
       <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
-      <div class="nav-item" onclick="navigate('contracts',this)"><span class="nav-icon">📄</span> Contracts</div>
       <div class="nav-item" onclick="navigate('reports',this)"><span class="nav-icon">📊</span> Reports</div>
       <div class="nav-item" onclick="navigate('auditlog',this)"><span class="nav-icon">📝</span> Audit Log</div>
       <div class="nav-section-label">Settings</div>
@@ -588,6 +588,7 @@
           <div class="panel-header">
             <div class="panel-title">Contracts</div>
             <div class="panel-count" id="contracts-panel-count">0 contracts</div>
+            <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openContractModal()">+ Add Contract</button>
           </div>
           <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
             <input type="text" id="contracts-search" placeholder="🔍  Search contracts by name, party, type, status..." oninput="renderContracts()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
@@ -1081,7 +1082,7 @@ function subscribeRealtime() {
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
 const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'',auditlog:'',users:''};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',auditlog:'',users:''};
 
 function navigate(page,el){
   currentPage=page;
