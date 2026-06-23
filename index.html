@@ -1099,16 +1099,11 @@ function populateSubFilterDropdowns(){
 }
 function clearSubFilters(){ const el=document.getElementById('sub-search'); if(el)el.value=''; renderSubmissions(); }
 function renderSubmissions(){
-  populateSubFilterDropdowns();
-  const fstatus=document.getElementById('sub-filter-status').value;
-  const fprod=document.getElementById('sub-filter-product').value;
-  const ffrom=document.getElementById('sub-filter-target-from').value;
-  const fto=document.getElementById('sub-filter-target-to').value;
-  let f=subFilter==='all'?[...submissions]:submissions.filter(s=>s.type===subFilter);
-  if(fstatus) f=f.filter(s=>s.status===fstatus);
-  if(fprod) f=f.filter(s=>s.product===fprod);
-  if(ffrom) f=f.filter(s=>s.pdufa&&s.pdufa>=ffrom);
-  if(fto) f=f.filter(s=>s.pdufa&&s.pdufa<=fto);
+  const sq=(document.getElementById('sub-search')?.value||'').toLowerCase().trim();
+  let f=[...submissions];
+  if(sq) f=f.filter(s=>[s.id,s.product,s.type,s.status,s.lead,s.notes,s.date,s.pdufa,s.category,s.classification,
+    projects.find(p=>p.id===s.projLink)?.name||''
+  ].some(v=>(v||'').toLowerCase().includes(sq)));
   const tb=document.getElementById('subs-tbody'),em=document.getElementById('subs-empty');
   document.getElementById('sub-panel-count').textContent=submissions.length+' submission'+(submissions.length!==1?'s':'');
   if(!f.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';
@@ -1125,13 +1120,10 @@ function populateProdFilterDropdowns(){
 }
 function clearProdFilters(){ const el=document.getElementById('prod-search'); if(el)el.value=''; renderProducts(); }
 function renderProducts(){
-  populateProdFilterDropdowns();
-  const frs=document.getElementById('prod-filter-regstatus').value;
-  const fc=document.getElementById('prod-filter-country').value;
+  const pq=(document.getElementById('prod-search')?.value||'').toLowerCase().trim();
   const g=document.getElementById('product-grid'),em=document.getElementById('products-empty');
-  let filtered=products;
-  if(frs) filtered=filtered.filter(p=>p.regStatus===frs);
-  if(fc) filtered=filtered.filter(p=>p.country===fc);
+  let filtered=[...products];
+  if(pq) filtered=filtered.filter(p=>[p.name,p.internalId,p.category,p.classification,p.ta,p.phase,p.owner,p.regStatus,p.regNo,p.country,p.refType,p.desc].some(v=>(v||'').toLowerCase().includes(pq)));
   document.getElementById('prod-panel-count').textContent=filtered.length+' of '+products.length+' product'+(products.length!==1?'s':'');
   if(!filtered.length){g.innerHTML='';em.style.display='block';return;}em.style.display='none';
   const now=new Date();now.setHours(0,0,0,0);
