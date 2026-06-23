@@ -580,6 +580,81 @@
         </div>
       </div>
 
+
+      <!-- CONTRACTS -->
+      <div class="page" id="page-contracts">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Contracts</div>
+            <div class="panel-count" id="contracts-panel-count">0 contracts</div>
+          </div>
+          <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="text" id="contracts-search" placeholder="🔍  Search contracts by name, party, type, status..." oninput="renderContracts()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Contract Name</th><th>Type</th><th>Parties</th><th>Status</th><th>Effective Date</th><th>Expiry Date</th><th>Responsible</th><th>Files</th><th>Actions</th></tr></thead>
+              <tbody id="contracts-tbody"></tbody>
+            </table>
+            <div id="contracts-empty" class="empty-state" style="display:none;"><div class="empty-icon">📄</div><h3>No contracts yet</h3><p>Click "+ Add New" to log your first contract.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTRACT MODAL -->
+      <div class="modal-overlay" id="contract-modal">
+        <div class="modal" style="max-width:680px;">
+          <div class="modal-header">
+            <h2 id="contract-modal-title">New Contract</h2>
+            <button class="modal-close" onclick="closeModal('contract-modal')">×</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="contract-edit-id">
+            <div class="form-group full"><label>Contract Name *</label><input type="text" id="contract-name" placeholder="e.g. Distribution Agreement - Pierrel SpA"></div>
+            <div class="form-group"><label>Type</label>
+              <select id="contract-type">
+                <option>Service Agreement</option>
+                <option>Distribution Agreement</option>
+                <option>Manufacturing Agreement</option>
+                <option>Regulatory Consultancy</option>
+                <option>Technical Agreement</option>
+                <option>Quality Agreement</option>
+                <option>License Agreement</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Status</label>
+              <select id="contract-status">
+                <option value="active">Active</option>
+                <option value="under-negotiation">Under Negotiation</option>
+                <option value="expired">Expired</option>
+                <option value="terminated">Terminated</option>
+              </select>
+            </div>
+            <div class="form-group full"><label>Party A (Your Organization)</label><input type="text" id="contract-party-a" placeholder="e.g. DAF Holding"></div>
+            <div class="form-group full"><label>Party B (Other Party) *</label><input type="text" id="contract-party-b" placeholder="e.g. Pierrel S.p.A."></div>
+            <div class="form-group"><label>Effective Date</label><input type="date" id="contract-effective-date"></div>
+            <div class="form-group"><label>Expiry / Renewal Date</label><input type="date" id="contract-expiry-date"></div>
+            <div class="form-group"><label>Responsible Person</label><input type="text" id="contract-responsible" placeholder="e.g. Nada Youssef"></div>
+            <div class="form-group"><label>Linked Product</label><select id="contract-prod-link"><option value="">— None —</option></select></div>
+            <div class="form-group"><label>Linked Submission</label><select id="contract-sub-link"><option value="">— None —</option></select></div>
+            <div class="form-group full"><label>Upload Contract Document</label>
+              <div class="upload-zone" id="contract-upload-zone" onclick="document.getElementById('contract-file-input').click()" ondrop="handleContractDrop(event)" ondragover="event.preventDefault()">
+                <div>📎 Click or drag to upload contract document</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">PDF, Word, or any document format</div>
+              </div>
+              <input type="file" id="contract-file-input" style="display:none;" onchange="handleContractFileSelect(event)" accept=".pdf,.doc,.docx,.xlsx,.xls,.ppt,.pptx">
+              <div id="contract-pending-files" style="margin-top:8px;"></div>
+            </div>
+            <div class="form-group full"><label>Notes</label><textarea id="contract-notes" placeholder="Key terms, obligations, renewal conditions..."></textarea></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('contract-modal')">Cancel</button>
+            <button class="btn btn-primary" id="contract-save-btn" onclick="saveContract()">Save Contract</button>
+          </div>
+        </div>
+      </div>
+
       <!-- AUDIT LOG -->
       <div class="page" id="page-auditlog">
         <div style="padding:24px;max-width:900px;">
@@ -595,6 +670,7 @@
                   <option value="product">Products</option>
                   <option value="project">Projects</option>
                   <option value="workflow">Workflows</option>
+                  <option value="contract">Contracts</option>
                 </select>
               </div>
             </div>
@@ -974,6 +1050,7 @@ const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.catego
 // ── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadAll() {
   await loadUsers();
+  await loadContracts();
   try {
     const [t,s,p,w,pr] = await Promise.all([
       db.from('tasks').select('*').order('created_at',{ascending:false}),
@@ -1002,8 +1079,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',auditlog:'',users:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'',auditlog:'',users:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -1018,6 +1095,7 @@ function navigate(page,el){
   if(page==='reports'){ initReportFilters(); renderReport(); }
   if(page==='kpi') renderKPI();
   if(page==='auditlog') renderAuditLog();
+  if(page==='contracts') renderContracts();
   if(page==='users') renderUsers();
 }
 function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();}
@@ -1025,7 +1103,7 @@ function setTaskFilter(f,el){renderTasks();}
 function setSubFilter(f,el){renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
 function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
@@ -1551,6 +1629,208 @@ async function sendNotificationEmails(){
 
 
 
+
+// ── CONTRACTS ─────────────────────────────────────────────────────────────────
+let contracts = [];
+let contractPendingFiles = [];
+
+const mC = r => ({
+  id: r.id, name: r.name, type: r.type||'Service Agreement',
+  status: r.status||'active', partyA: r.party_a||'', partyB: r.party_b||'',
+  effectiveDate: r.effective_date||'', expiryDate: r.expiry_date||'',
+  responsible: r.responsible||'', prodLink: r.prod_link||'',
+  subLink: r.sub_link||'', notes: r.notes||'', files: r.files||[],
+  createdBy: r.created_by||'', createdAt: r.created_at_user||r.created_at||''
+});
+
+async function loadContracts(){
+  const {data,error} = await db.from('contracts').select('*').order('created_at', {ascending:false});
+  if(!error) contracts = (data||[]).map(mC);
+}
+
+function cStatusBadge(s){
+  const map = {
+    'active':           {bg:'var(--green-light)',  color:'var(--green)',   label:'Active'},
+    'under-negotiation':{bg:'var(--gold-light)',   color:'var(--gold)',    label:'Under Negotiation'},
+    'expired':          {bg:'var(--accent-light)', color:'var(--accent)',  label:'Expired'},
+    'terminated':       {bg:'var(--surface2)',      color:'var(--text-muted)', label:'Terminated'},
+  };
+  const c = map[s]||{bg:'var(--surface2)',color:'var(--text-muted)',label:s};
+  return `<span style="background:${c.bg};color:${c.color};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">${c.label}</span>`;
+}
+
+function renderContracts(){
+  const tb = document.getElementById('contracts-tbody');
+  const em = document.getElementById('contracts-empty');
+  const cnt = document.getElementById('contracts-panel-count');
+  if(!tb) return;
+  const q = (document.getElementById('contracts-search')?.value||'').toLowerCase().trim();
+  let f = [...contracts];
+  if(q) f = f.filter(c=>[c.name,c.type,c.status,c.partyA,c.partyB,c.responsible,c.notes,
+    products.find(p=>p.id===c.prodLink)?.name||'',
+    submissions.find(s=>s.id===c.subLink)?.id||''
+  ].some(v=>(v||'').toLowerCase().includes(q)));
+  cnt.textContent = f.length+' contract'+(f.length!==1?'s':'');
+  if(!f.length){ tb.innerHTML=''; em.style.display='block'; return; }
+  em.style.display='none';
+  const now = new Date(); now.setHours(0,0,0,0);
+  tb.innerHTML = f.map(c=>{
+    const lp = products.find(p=>p.id===c.prodLink);
+    const ls = submissions.find(s=>s.id===c.subLink);
+    const expiring = c.expiryDate && (new Date(c.expiryDate)-now)/86400000 <= 60 && (new Date(c.expiryDate)-now)/86400000 >= 0;
+    const expired = c.expiryDate && new Date(c.expiryDate) < now;
+    return `<tr onclick="openContractDetail('${c.id}')" style="cursor:pointer;">
+      <td><div style="font-weight:500;">${c.name}</div>${lp?`<div style="font-size:11px;color:var(--text-muted);">📦 ${lp.name}</div>`:''}${ls?`<div style="font-size:11px;color:var(--text-muted);">📋 ${ls.id}</div>`:''}</td>
+      <td><span class="type-pill">${c.type}</span></td>
+      <td style="font-size:12.5px;">${c.partyB||'—'}</td>
+      <td>${cStatusBadge(c.status)}</td>
+      <td style="font-size:12.5px;color:var(--text-muted);">${fmt(c.effectiveDate)||'—'}</td>
+      <td style="font-size:12.5px;${expiring?'color:var(--orange);font-weight:600;':expired?'color:var(--accent);':''}">${fmt(c.expiryDate)||'—'}${expiring?' ⚠️':''}${expired&&c.status!=='terminated'?' ❌':''}</td>
+      <td>${c.responsible?`<div class="assignee"><div class="avatar" style="background:${aColor(c.responsible)};width:22px;height:22px;font-size:9px;">${ini(c.responsible)}</div><span>${c.responsible}</span></div>`:'—'}</td>
+      <td style="font-size:12px;">${c.files.length?`📎 ${c.files.length} file${c.files.length!==1?'s':''}`:'—'}</td>
+      <td><div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editContract('${c.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="event.stopPropagation();deleteContract('${c.id}')">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openContractDetail(id){
+  const c = contracts.find(c=>c.id===id);
+  if(!c) return;
+  const lp = products.find(p=>p.id===c.prodLink);
+  const ls = submissions.find(s=>s.id===c.subLink);
+  const now = new Date(); now.setHours(0,0,0,0);
+  const expiring = c.expiryDate && (new Date(c.expiryDate)-now)/86400000 <= 60;
+  document.getElementById('detail-modal-content').innerHTML = `
+    <div class="modal-header" style="background:var(--surface2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+      <h2 style="font-size:16px;">${c.name}</h2>
+      <button class="modal-close" onclick="closeModal('detail-modal')">x</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div><div class="detail-label">Type</div><div><span class="type-pill">${c.type}</span></div></div>
+      <div><div class="detail-label">Status</div><div>${cStatusBadge(c.status)}</div></div>
+      <div><div class="detail-label">Party A</div><div class="detail-value">${c.partyA||'—'}</div></div>
+      <div><div class="detail-label">Party B</div><div class="detail-value">${c.partyB||'—'}</div></div>
+      <div><div class="detail-label">Effective Date</div><div class="detail-value">${fmt(c.effectiveDate)||'—'}</div></div>
+      <div><div class="detail-label">Expiry Date</div><div class="detail-value" style="${expiring?'color:var(--orange);font-weight:600;':''}">${fmt(c.expiryDate)||'—'}${expiring?' ⚠️':''}</div></div>
+      <div><div class="detail-label">Responsible</div><div class="detail-value">${c.responsible||'—'}</div></div>
+      ${lp?`<div><div class="detail-label">Linked Product</div><div class="detail-value">📦 ${lp.name}</div></div>`:''}
+      ${ls?`<div><div class="detail-label">Linked Submission</div><div class="detail-value">📋 ${ls.id}</div></div>`:''}
+      ${c.notes?`<div style="grid-column:1/-1;"><div class="detail-label">Notes</div><div class="detail-value" style="white-space:pre-wrap;">${c.notes}</div></div>`:''}
+      ${c.files.length?`<div style="grid-column:1/-1;"><div class="detail-label">Documents</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">${c.files.map(f=>`<a href="${f.url}" target="_blank" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--blue-light);color:var(--blue);border-radius:var(--radius);font-size:12px;text-decoration:none;">📎 ${f.name}</a>`).join('')}</div></div>`:''}
+      ${c.createdBy?`<div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;"><div class="detail-label">Created By</div><div class="detail-value" style="font-size:12px;color:var(--text-muted);">👤 ${c.createdBy}${c.createdAt?' | '+new Date(c.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):''}</div></div>`:''}
+    </div>
+    <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('detail-modal');editContract('${c.id}')">Edit</button>
+    </div>`;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function handleContractFileSelect(e){ contractPendingFiles = [...e.target.files]; showContractPendingFiles(); }
+function handleContractDrop(e){ e.preventDefault(); contractPendingFiles = [...e.dataTransfer.files]; showContractPendingFiles(); }
+function showContractPendingFiles(){
+  const div = document.getElementById('contract-pending-files');
+  if(!div) return;
+  div.innerHTML = contractPendingFiles.map((f,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:var(--radius);margin-bottom:4px;font-size:12.5px;">📎 ${f.name} <button onclick="contractPendingFiles.splice(${i},1);showContractPendingFiles();" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-muted);">✕</button></div>`).join('');
+}
+
+async function uploadContractFiles(cId){
+  const uploaded = [];
+  for(const file of contractPendingFiles){
+    if(!file) continue;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_PRESET);
+      formData.append('folder', 'ra-command/contracts/'+cId);
+      const res = await fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD+'/auto/upload', {method:'POST',body:formData});
+      const data = await res.json();
+      if(data.error){ showToast('x','Upload failed: '+data.error.message); continue; }
+      const resType = data.resource_type||'raw';
+      const publicUrl = 'https://res.cloudinary.com/'+CLOUDINARY_CLOUD+'/'+resType+'/upload/'+data.public_id;
+      uploaded.push({name:file.name, url:publicUrl, public_id:data.public_id});
+    } catch(e){ showToast('x','Upload failed: '+e.message); }
+  }
+  return uploaded;
+}
+
+function openContractModal(id){
+  document.getElementById('contract-modal-title').textContent = id ? 'Edit Contract' : 'New Contract';
+  document.getElementById('contract-edit-id').value = id||'';
+  contractPendingFiles = [];
+  showContractPendingFiles();
+  document.getElementById('contract-prod-link').innerHTML = '<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('contract-sub-link').innerHTML = '<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  if(id){
+    const c = contracts.find(c=>c.id===id);
+    document.getElementById('contract-name').value = c.name;
+    document.getElementById('contract-type').value = c.type;
+    document.getElementById('contract-status').value = c.status;
+    document.getElementById('contract-party-a').value = c.partyA;
+    document.getElementById('contract-party-b').value = c.partyB;
+    document.getElementById('contract-effective-date').value = c.effectiveDate;
+    document.getElementById('contract-expiry-date').value = c.expiryDate;
+    document.getElementById('contract-responsible').value = c.responsible;
+    document.getElementById('contract-prod-link').value = c.prodLink;
+    document.getElementById('contract-sub-link').value = c.subLink;
+    document.getElementById('contract-notes').value = c.notes;
+  } else {
+    ['contract-name','contract-party-a','contract-party-b','contract-effective-date','contract-expiry-date','contract-responsible','contract-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('contract-type').value = 'Service Agreement';
+    document.getElementById('contract-status').value = 'active';
+    document.getElementById('contract-prod-link').value = '';
+    document.getElementById('contract-sub-link').value = '';
+  }
+  document.getElementById('contract-modal').classList.add('open');
+}
+
+function editContract(id){ if(!canEdit()){showToast('x','You have view-only access.');return;} openContractModal(id); }
+
+async function saveContract(){
+  const name = document.getElementById('contract-name').value.trim();
+  const partyB = document.getElementById('contract-party-b').value.trim();
+  if(!name||!partyB){ alert('Contract name and Party B are required.'); return; }
+  const btn=document.getElementById('contract-save-btn'); btn.disabled=true; btn.textContent='Saving...'; setSyncStatus('syncing');
+  const editId = document.getElementById('contract-edit-id').value;
+  const id = editId||uid();
+  btn.textContent = contractPendingFiles.length ? 'Uploading...' : 'Saving...';
+  const newFiles = await uploadContractFiles(id);
+  let allFiles = newFiles;
+  if(editId){ const existing=contracts.find(c=>c.id===editId); if(existing) allFiles=[...(existing.files||[]),...newFiles]; }
+  const session = getSession();
+  const row = {
+    id, name,
+    type: document.getElementById('contract-type').value,
+    status: document.getElementById('contract-status').value,
+    party_a: document.getElementById('contract-party-a').value.trim(),
+    party_b: partyB,
+    effective_date: document.getElementById('contract-effective-date').value||null,
+    expiry_date: document.getElementById('contract-expiry-date').value||null,
+    responsible: document.getElementById('contract-responsible').value.trim(),
+    prod_link: document.getElementById('contract-prod-link').value||null,
+    sub_link: document.getElementById('contract-sub-link').value||null,
+    notes: document.getElementById('contract-notes').value.trim(),
+    files: allFiles,
+    ...(!editId&&{created_by:session?.name||'Unknown', created_at_user:new Date().toISOString()})
+  };
+  const {error} = editId ? await db.from('contracts').update(row).eq('id',editId) : await db.from('contracts').insert(row);
+  btn.disabled=false; btn.textContent='Save Contract';
+  if(error){ showToast('x','Save failed: '+error.message); setSyncStatus('online'); return; }
+  showToast('ok', editId?'Contract updated':'Contract saved');
+  await loadContracts(); renderContracts(); closeModal('contract-modal'); setSyncStatus('online');
+}
+
+async function deleteContract(id){
+  if(!canDelete()){ showToast('x','Only admins can delete records.'); return; }
+  if(!confirm('Delete this contract?')) return;
+  setSyncStatus('syncing');
+  await db.from('contracts').delete().eq('id',id);
+  await loadContracts(); renderContracts(); setSyncStatus('online'); showToast('ok','Contract deleted');
+}
+
 // ── USER MANAGEMENT ───────────────────────────────────────────────────────────
 let appUsers = [];
 
@@ -1667,12 +1947,13 @@ function renderAuditLog(){
   products.forEach(p=>{ if(p.createdBy) entries.push({type:'product',label:p.name,createdBy:p.createdBy,createdAt:p.createdAt}); });
   projects.forEach(p=>{ if(p.createdBy) entries.push({type:'project',label:p.name,createdBy:p.createdBy,createdAt:p.createdAt}); });
   workflows.forEach(w=>{ if(w.createdBy) entries.push({type:'workflow',label:w.title,createdBy:w.createdBy,createdAt:w.createdAt}); });
+  contracts.forEach(c=>{ if(c.createdBy) entries.push({type:'contract',label:c.name,createdBy:c.createdBy,createdAt:c.createdAt}); });
 
   if(ftype) entries = entries.filter(e=>e.type===ftype);
   entries.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
 
-  const typeColors = {task:'var(--blue)',submission:'var(--teal)',product:'var(--gold)',project:'var(--purple)',workflow:'var(--orange)'};
-  const typeLabels = {task:'Task',submission:'Submission',product:'Product',project:'Project',workflow:'Workflow'};
+  const typeColors = {task:'var(--blue)',submission:'var(--teal)',product:'var(--gold)',project:'var(--purple)',workflow:'var(--orange)',contract:'var(--green)'};
+  const typeLabels = {task:'Task',submission:'Submission',product:'Product',project:'Project',workflow:'Workflow',contract:'Contract'};
 
   const tbody = document.getElementById('audit-tbody');
   const empty = document.getElementById('audit-empty');
@@ -2280,167 +2561,4 @@ function renderPdTasks(){
     `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;margin-top:4px;">Tasks</div>`,
     pt.length ? pt.map(t=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
       <div style="flex:1;"><div style="font-weight:500;font-size:13.5px;">${t.title}</div>${t.due?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">Due: ${fmt(t.due)}</div>`:''}</div>
-      ${tBadge(t.status)}${pBadge(t.priority)}
-      <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editTask('${t.id}')">Edit</button>
-    </div>`).join('') : `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">No tasks yet. Click "+ Add Task" to get started.</div>`,
-    ps.length ? `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px;">Submissions</div>`+ps.map(s=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;"><div style="flex:1;"><div style="font-weight:500;font-size:13px;">${s.id}</div><div style="font-size:11.5px;color:var(--text-muted);">${s.product} · ${s.type}</div></div>${sBadge(s.status)}</div>`).join('') : '',
-    pw.length ? `<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px;">Workflows</div>`+pw.map(w=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;"><div style="font-weight:500;font-size:13px;">${w.title}</div><div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${w.stage}</div></div>`).join('') : ''
-  ].join('');
-}
-
-function setPdFilter(f,el){pdFilter=f;document.querySelectorAll('#pd-task-filters .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderPdTasks();}
-
-function closeProjDetail(){
-  document.getElementById('proj-detail-overlay').style.display='none';
-  document.getElementById('proj-detail-panel').style.display='none';
-  currentProjId=null;
-}
-
-function addTaskToProject(){
-  closeProjDetail();
-  openTaskModalForProject(currentProjId);
-}
-
-function openTaskModalForProject(projId){
-  openTaskModal();
-  setTimeout(()=>{
-    const sel=document.getElementById('task-proj-link');
-    if(sel&&projId) sel.value=projId;
-  },50);
-}
-
-function editProjFromDetail(){ const id=currentProjId; closeProjDetail(); openProjModal(id); }
-
-function populateProjSelects(){
-  const opts = '<option value="">— No Project —</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  ['task-proj-link','sub-proj-link','wf-proj-link'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
-  // Project filter dropdowns
-  const fopts = '<option value="">All Projects</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  ['task-filter-project','sub-filter-project','wf-filter-project'].forEach(id=>{const el=document.getElementById(id);if(el){const cur=el.value;el.innerHTML=fopts;el.value=cur;}});
-}
-
-function openProjModal(id){
-  document.getElementById('proj-modal-title').textContent = id?'Edit Project':'New Project';
-  document.getElementById('proj-edit-id').value = id||'';
-  document.getElementById('proj-prod-link').innerHTML='<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  document.getElementById('proj-sub-link').innerHTML='<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
-  if(id){
-    const p=projects.find(p=>p.id===id);
-    document.getElementById('proj-name').value=p.name;
-    document.getElementById('proj-status').value=p.status||'active';
-    document.getElementById('proj-responsible').value=p.responsible||'';
-    document.getElementById('proj-prod-link').value=p.prodLink||'';
-    document.getElementById('proj-sub-link').value=p.subLink||'';
-    document.getElementById('proj-desc').value=p.desc||'';
-  } else {
-    ['proj-name','proj-responsible','proj-desc'].forEach(f=>document.getElementById(f).value='');
-    document.getElementById('proj-status').value='active';
-    document.getElementById('proj-prod-link').value='';
-    document.getElementById('proj-sub-link').value='';
-  }
-  document.getElementById('proj-modal').classList.add('open');
-}
-
-async function saveProject(){
-  const name=document.getElementById('proj-name').value.trim();
-  if(!name){alert('Project name is required.');return;}
-  const btn=document.getElementById('proj-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
-  const editId=document.getElementById('proj-edit-id').value;
-  const id=editId||uid();
-  const _prsession=getSession();
-  const row={id,name,status:document.getElementById('proj-status').value,responsible:document.getElementById('proj-responsible').value.trim(),prod_link:document.getElementById('proj-prod-link').value||null,sub_link:document.getElementById('proj-sub-link').value||null,description:document.getElementById('proj-desc').value.trim(),...(!editId&&{created_by:_prsession?.name||'Unknown',created_at_user:new Date().toISOString()})};
-  const{error}=editId?await db.from('projects').update(row).eq('id',editId):await db.from('projects').insert(row);
-  btn.disabled=false;btn.textContent='Save Project';
-  if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
-  closeModal('proj-modal');showToast('✓',editId?'Project updated':'Project created');setSyncStatus('online');
-}
-
-async function deleteProject(id){
-  if(!canDelete()){showToast('⚠️','Only admins can delete records.');return;}
-  if(!confirm('Delete this project? Tasks linked to it will remain but lose the project link.'))return;
-  setSyncStatus('syncing');
-  await db.from('projects').delete().eq('id',id);
-  setSyncStatus('online');showToast('🗑','Project deleted');
-}
-
-// ── SIMPLE AUTH ──────────────────────────────────────────────────────────────
-const USERS = {
-  'nada.youssef@dafholding.com':       { password: 'DAF@2026', name: 'Nada Youssef',        role: 'admin' },
-  'nesreen.abdelfattah@dafholding.com':{ password: 'DAF@2026', name: 'Nesreen Abdel Fattah', role: 'editor' },
-};
-// Role permissions
-const ROLE_CAN_DELETE = ['admin'];
-const ROLE_CAN_EDIT   = ['admin','editor'];
-const ROLE_CAN_ADD    = ['admin','editor'];
-function canDelete(){ const s=getSession(); return s&&ROLE_CAN_DELETE.includes(s.role); }
-function canEdit(){   const s=getSession(); return s&&ROLE_CAN_EDIT.includes(s.role); }
-function canAdd(){    const s=getSession(); return s&&ROLE_CAN_ADD.includes(s.role); }
-
-function getSession(){ try{ return JSON.parse(sessionStorage.getItem('ra_session')); }catch{ return null; } }
-function setSession(u){ sessionStorage.setItem('ra_session', JSON.stringify(u)); }
-function clearSession(){ sessionStorage.removeItem('ra_session'); }
-
-function initAuth(){
-  const s = getSession();
-  if(s){ showApp(s); }
-  else{ document.getElementById('login-screen').classList.remove('hidden'); }
-}
-
-function showApp(user){
-  document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('main-app').style.display = 'flex';
-  const name = user.name || user.email;
-  const roleLabel = {'admin':'Admin','editor':'Editor','viewer':'Viewer'}[user.role||'viewer'];
-  document.getElementById('user-email-display').textContent = name + ' · ' + roleLabel;
-  const initials = name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  document.getElementById('user-avatar').textContent = initials;
-  // Show admin-only nav
-  document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display = (user.role==='admin')?'':'none'; });
-  loadAll().then(()=>{ subscribeRealtime(); sendNotificationEmails(); });
-}
-
-function showLogin(){
-  clearSession();
-  document.getElementById('main-app').style.display = 'none';
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('login-email').value = '';
-  document.getElementById('login-password').value = '';
-}
-
-function doLogin(){ doLoginFromDB(); return; 
-// Legacy fallback below (unused)
-function doLogin_legacy(){
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  const password = document.getElementById('login-password').value;
-  const errEl = document.getElementById('login-error');
-  const btn = document.getElementById('login-btn');
-  if(!email || !password){ errEl.textContent='Please enter your email and password.'; errEl.classList.add('show'); return; }
-  btn.disabled=true; btn.textContent='Signing in…';
-  setTimeout(()=>{
-    const user = USERS[email];
-    if(user && user.password === password){
-      errEl.classList.remove('show');
-      setSession({ email, name: user.name, role: user.role||'viewer' });
-      showApp({ email, name: user.name, role: user.role||'viewer' });
-    } else {
-      errEl.textContent='Incorrect email or password.';
-      errEl.classList.add('show');
-      btn.disabled=false; btn.textContent='Sign In';
-    }
-  }, 400);
-}
-
-} // end doLogin_legacy
-function doLogout(){ showLogin(); }
-
-initAuth();
-</script>
-
-<!-- DETAIL VIEW MODAL -->
-<div class="modal-overlay" id="detail-modal">
-  <div class="modal" id="detail-modal-content" style="max-width:620px;padding:0;">
-  </div>
-</div>
-
-</body>
-</html>
+      ${tBadge(t.status)}${pBadge
