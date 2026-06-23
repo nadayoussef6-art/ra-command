@@ -1008,7 +1008,7 @@ function setSyncStatus(s){const dot=document.getElementById('sync-dot'),lbl=docu
 
 // ── MAPPERS ──────────────────────────────────────────────────────────────────
 const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',projLink:r.proj_link||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
-const mPrj=r=>({id:r.id,name:r.name,status:r.status||'active',responsible:r.responsible||'',prodLink:r.prod_link||'',subLink:r.sub_link||'',desc:r.description||''});
+const mPrj=r=>({id:r.id,name:r.name,status:r.status||'active',responsible:r.responsible||'',prodLink:r.prod_link||'',subLink:r.sub_link||'',desc:r.description||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',category:r.category||'',classification:r.classification||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',classification:r.classification||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 
