@@ -385,21 +385,8 @@
               </select>
             </div>
           </div>
-          <div class="filter-bar">
-            <span class="filter-label">Status:</span>
-            <button class="filter-chip active" onclick="setTaskFilter('all',this)">All</button>
-            <button class="filter-chip" onclick="setTaskFilter('open',this)">Open</button>
-            <button class="filter-chip" onclick="setTaskFilter('in-progress',this)">In Progress</button>
-            <button class="filter-chip" onclick="setTaskFilter('blocked',this)">Blocked</button>
-            <button class="filter-chip" onclick="setTaskFilter('done',this)">Done</button>
-          </div>
-          <div class="filter-row">
-            <span class="filter-label">Filter:</span>
-            <select id="task-filter-project" class="filter-select" onchange="renderTasks()"><option value="">All Projects</option></select>
-            <select id="task-filter-product" class="filter-select" onchange="renderTasks()"><option value="">All Products</option></select>
-            <input type="date" id="task-filter-due-from" class="filter-date" onchange="renderTasks()" title="Due from">
-            <input type="date" id="task-filter-due-to" class="filter-date" onchange="renderTasks()" title="Due to">
-            <button class="filter-clear" onclick="clearTaskFilters()">✕ Clear</button>
+          <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="text" id="task-search" placeholder="🔍  Search tasks by title, status, priority, assignee, notes..." oninput="renderTasks()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
           </div>
           <div class="table-wrap">
             <table><thead><tr><th>Task</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Due Date</th><th>Linked To</th><th>Actions</th></tr></thead>
@@ -416,31 +403,8 @@
             <div class="panel-title">Submissions</div>
             <div class="panel-count" id="sub-panel-count">0 submissions</div>
           </div>
-          <div class="filter-bar">
-            <span class="filter-label">Type:</span>
-            <button class="filter-chip active" onclick="setSubFilter('all',this)">All</button>
-            <button class="filter-chip" onclick="setSubFilter('New Registration',this)">New Registration</button>
-            <button class="filter-chip" onclick="setSubFilter('Renewal',this)">Renewal</button>
-            <button class="filter-chip" onclick="setSubFilter('Variation',this)">Variation</button>
-            <button class="filter-chip" onclick="setSubFilter('Appeal',this)">Appeal</button>
-            <button class="filter-chip" onclick="setSubFilter('Other',this)">Other</button>
-          </div>
-          <div class="filter-row">
-            <span class="filter-label">Filter:</span>
-            <select id="sub-filter-status" class="filter-select" onchange="renderSubmissions()">
-              <option value="">All Statuses</option>
-              <option value="preparation">In Preparation</option>
-              <option value="submitted">Submitted</option>
-              <option value="review">Under Review</option>
-              <option value="approved">Approved</option>
-              <option value="hold">On Hold</option>
-              <option value="withdrawn">Withdrawn</option>
-            </select>
-            <select id="sub-filter-project" class="filter-select" onchange="renderSubmissions()"><option value="">All Projects</option></select>
-            <select id="sub-filter-product" class="filter-select" onchange="renderSubmissions()"><option value="">All Products</option></select>
-            <input type="date" id="sub-filter-target-from" class="filter-date" onchange="renderSubmissions()" title="Target date from">
-            <input type="date" id="sub-filter-target-to" class="filter-date" onchange="renderSubmissions()" title="Target date to">
-            <button class="filter-clear" onclick="clearSubFilters()">✕ Clear</button>
+          <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="text" id="sub-search" placeholder="🔍  Search submissions by ID, product, type, status, lead..." oninput="renderSubmissions()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
           </div>
           <div class="table-wrap">
             <table><thead><tr><th>Submission ID</th><th>Product</th><th>Type</th><th>Status</th><th>Submission Date</th><th>Target Date</th><th>Lead</th><th>Actions</th></tr></thead>
@@ -457,16 +421,8 @@
             <div class="panel-title">Products</div>
             <div class="panel-count" id="prod-panel-count">0 products</div>
           </div>
-          <div class="filter-row" style="background:var(--surface);border:1px solid var(--border);border-top:none;">
-            <span class="filter-label">Filter:</span>
-            <select id="prod-filter-regstatus" class="filter-select" onchange="renderProducts()">
-              <option value="">All Registration Statuses</option>
-              <option>Registered</option><option>Pending Registration</option>
-              <option>Under Renewal</option><option>Expired</option>
-              <option>Cancelled</option><option>Not Registered</option>
-            </select>
-            <select id="prod-filter-country" class="filter-select" onchange="renderProducts()"><option value="">All Countries</option></select>
-            <button class="filter-clear" onclick="clearProdFilters()">✕ Clear</button>
+          <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface);border:1px solid var(--border);border-top:none;">
+            <input type="text" id="prod-search" placeholder="🔍  Search products by name, category, registration status, country, owner..." oninput="renderProducts()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface2);font-family:'DM Sans',sans-serif;outline:none;">
           </div>
           <div id="product-grid" class="product-grid" style="background:transparent;padding:16px 0;"></div>
           <div id="products-empty" class="empty-state" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:60px;">
@@ -489,6 +445,9 @@
                 <option>Completed</option>
               </select>
             </div>
+          </div>
+          <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="text" id="proj-search" placeholder="🔍  Search projects by name, status, responsible person..." oninput="renderProjects()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
           </div>
           <div id="project-cards-grid" class="product-grid" style="background:transparent;padding:16px 0;"></div>
           <div id="projects-empty" class="empty-state" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:60px;">
@@ -1062,8 +1021,8 @@ function navigate(page,el){
   if(page==='users') renderUsers();
 }
 function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();}
-function setTaskFilter(f,el){taskFilter=f;document.querySelectorAll('#page-tasks .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks();}
-function setSubFilter(f,el){subFilter=f;document.querySelectorAll('#page-submissions .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderSubmissions();}
+function setTaskFilter(f,el){renderTasks();}
+function setSubFilter(f,el){renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
 function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
@@ -1108,25 +1067,17 @@ function populateTaskFilterDropdowns(){
   prodSel.innerHTML='<option value="">All Products</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   prodSel.value=cur;
 }
-function clearTaskFilters(){
-  const tp=document.getElementById('task-filter-project');if(tp)tp.value='';
-  document.getElementById('task-filter-product').value='';
-  document.getElementById('task-filter-due-from').value='';
-  document.getElementById('task-filter-due-to').value='';
-  renderTasks();
-}
+function clearTaskFilters(){ const el=document.getElementById('task-search'); if(el)el.value=''; renderTasks(); }
 function renderTasks(){
   populateTaskFilterDropdowns();
   const sort=document.getElementById('task-sort').value;
-  const fproj=document.getElementById('task-filter-project')?.value||'';
-  const fprod=document.getElementById('task-filter-product').value;
-  const ffrom=document.getElementById('task-filter-due-from').value;
-  const fto=document.getElementById('task-filter-due-to').value;
-  let f=taskFilter==='all'?[...tasks]:tasks.filter(t=>t.status===taskFilter);
-  if(fproj) f=f.filter(t=>t.projLink===fproj);
-  if(fprod) f=f.filter(t=>t.prodLink===fprod);
-  if(ffrom) f=f.filter(t=>t.due&&t.due>=ffrom);
-  if(fto) f=f.filter(t=>t.due&&t.due<=fto);
+  const q=(document.getElementById('task-search')?.value||'').toLowerCase().trim();
+  let f=[...tasks];
+  if(q) f=f.filter(t=>[t.title,t.desc,t.status,t.priority,t.assignee,t.notes,t.due,
+    products.find(p=>p.id===t.prodLink)?.name||'',
+    submissions.find(s=>s.id===t.subLink)?.id||'',
+    projects.find(p=>p.id===t.projLink)?.name||''
+  ].some(v=>(v||'').toLowerCase().includes(q)));
   if(sort==='due')f.sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);});
   else if(sort==='priority'){const o={high:0,medium:1,low:2};f.sort((a,b)=>(o[a.priority]||1)-(o[b.priority]||1));}
   else f.sort((a,b)=>a.status.localeCompare(b.status));
@@ -1146,14 +1097,7 @@ function populateSubFilterDropdowns(){
   prodSel.innerHTML='<option value="">All Products</option>'+[...new Set(submissions.map(s=>s.product))].filter(Boolean).map(p=>`<option value="${p}">${p}</option>`).join('');
   prodSel.value=cur;
 }
-function clearSubFilters(){
-  const sp=document.getElementById('sub-filter-project');if(sp)sp.value='';
-  document.getElementById('sub-filter-status').value='';
-  document.getElementById('sub-filter-product').value='';
-  document.getElementById('sub-filter-target-from').value='';
-  document.getElementById('sub-filter-target-to').value='';
-  renderSubmissions();
-}
+function clearSubFilters(){ const el=document.getElementById('sub-search'); if(el)el.value=''; renderSubmissions(); }
 function renderSubmissions(){
   populateSubFilterDropdowns();
   const fstatus=document.getElementById('sub-filter-status').value;
@@ -1179,11 +1123,7 @@ function populateProdFilterDropdowns(){
   cSel.innerHTML='<option value="">All Countries</option>'+countries.map(c=>`<option value="${c}">${c}</option>`).join('');
   cSel.value=cur;
 }
-function clearProdFilters(){
-  document.getElementById('prod-filter-regstatus').value='';
-  document.getElementById('prod-filter-country').value='';
-  renderProducts();
-}
+function clearProdFilters(){ const el=document.getElementById('prod-search'); if(el)el.value=''; renderProducts(); }
 function renderProducts(){
   populateProdFilterDropdowns();
   const frs=document.getElementById('prod-filter-regstatus').value;
@@ -2273,9 +2213,9 @@ function renderProjects(){
   const grid = document.getElementById('proj-grid') || document.getElementById('project-cards-grid');
   const empty = document.getElementById('projects-empty');
   if(!grid) return;
-  const fStatus = document.getElementById('proj-filter-status')?.value||'';
-  let f = [...projects];
-  if(fStatus) f = f.filter(p=>p.status.toLowerCase()===fStatus.toLowerCase());
+  const prjq=(document.getElementById('proj-search')?.value||'').toLowerCase().trim();
+  let f=[...projects];
+  if(prjq) f=f.filter(p=>[p.name,p.status,p.responsible,p.desc].some(v=>(v||'').toLowerCase().includes(prjq)));
   const pc=document.getElementById('proj-panel-count');if(pc)pc.textContent=f.length+' project'+(f.length!==1?'s':'');
   if(!f.length){ grid.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
