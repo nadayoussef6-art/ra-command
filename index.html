@@ -324,6 +324,7 @@
       <div class="nav-section-label">Tools</div>
       <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
       <div class="nav-item" onclick="navigate('reports',this)"><span class="nav-icon">📊</span> Reports</div>
+      <div class="nav-item" onclick="navigate('auditlog',this)"><span class="nav-icon">📝</span> Audit Log</div>
       <div class="nav-section-label">Settings</div>
       <div class="nav-item" onclick="navigate('notifications',this)"><span class="nav-icon">🔔</span> Notifications</div>
     </nav>
@@ -567,6 +568,36 @@
             <div class="panel"><div class="panel-header"><div class="panel-title">Tasks Completion % per Project</div></div><div style="padding:16px;"><canvas id="kpi-proj-progress-chart" height="160"></canvas></div></div>
           </div>
 
+        </div>
+      </div>
+
+
+      <!-- AUDIT LOG -->
+      <div class="page" id="page-auditlog">
+        <div style="padding:24px;max-width:900px;">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Audit Log</div>
+              <div class="panel-count" id="audit-count">0 records</div>
+              <div style="margin-left:auto;">
+                <select id="audit-filter-type" class="filter-select" onchange="renderAuditLog()">
+                  <option value="">All Types</option>
+                  <option value="task">Tasks</option>
+                  <option value="submission">Submissions</option>
+                  <option value="product">Products</option>
+                  <option value="project">Projects</option>
+                  <option value="workflow">Workflows</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Type</th><th>Record</th><th>Created By</th><th>Created At</th></tr></thead>
+                <tbody id="audit-tbody"></tbody>
+              </table>
+              <div id="audit-empty" class="empty-state" style="display:none;"><div class="empty-icon">📝</div><h3>No audit records yet</h3><p>Records created after this update will appear here.</p></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -927,10 +958,10 @@ function pBadge(p){const m={high:'badge-high',medium:'badge-medium',low:'badge-l
 function setSyncStatus(s){const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-status');dot.className='sync-dot '+s;lbl.textContent=s==='online'?'Live sync on':s==='syncing'?'Saving…':'Connecting…';}
 
 // ── MAPPERS ──────────────────────────────────────────────────────────────────
-const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',projLink:r.proj_link||'',notes:r.notes||''});
+const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',projLink:r.proj_link||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 const mPrj=r=>({id:r.id,name:r.name,status:r.status||'active',responsible:r.responsible||'',prodLink:r.prod_link||'',subLink:r.sub_link||'',desc:r.description||''});
-const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',category:r.category||'',classification:r.classification||'',notes:r.notes||''});
-const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',classification:r.classification||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||''});
+const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',category:r.category||'',classification:r.classification||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
+const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',classification:r.classification||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadAll() {
@@ -962,8 +993,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},auditlog:{title:'Audit Log',sub:'Track who created records and when'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',auditlog:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -977,13 +1008,14 @@ function navigate(page,el){
   if(page==='notifications') applyNotifUI();
   if(page==='reports'){ initReportFilters(); renderReport(); }
   if(page==='kpi') renderKPI();
+  if(page==='auditlog') renderAuditLog();
 }
 function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();}
 function setTaskFilter(f,el){taskFilter=f;document.querySelectorAll('#page-tasks .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks();}
 function setSubFilter(f,el){subFilter=f;document.querySelectorAll('#page-submissions .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
 function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
@@ -1144,14 +1176,15 @@ async function saveTask(){
   const btn=document.getElementById('task-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('task-edit-id').value;
   const id=editId||uid();
-  const row={id,title,description:document.getElementById('task-desc').value.trim(),priority:document.getElementById('task-priority').value,status:document.getElementById('task-status').value,assignee:document.getElementById('task-assignee').value.trim(),due_date:document.getElementById('task-due').value||null,sub_link:document.getElementById('task-sub-link').value||null,prod_link:document.getElementById('task-prod-link').value||null,proj_link:document.getElementById('task-proj-link').value||null,notes:document.getElementById('task-notes').value.trim()};
+  const _session=getSession();
+  const row={id,title,description:document.getElementById('task-desc').value.trim(),priority:document.getElementById('task-priority').value,status:document.getElementById('task-status').value,assignee:document.getElementById('task-assignee').value.trim(),due_date:document.getElementById('task-due').value||null,sub_link:document.getElementById('task-sub-link').value||null,prod_link:document.getElementById('task-prod-link').value||null,proj_link:document.getElementById('task-proj-link').value||null,notes:document.getElementById('task-notes').value.trim(),...(!editId&&{created_by:_session?.name||'Unknown',created_at_user:new Date().toISOString()})};
   const{error}=editId?await db.from('tasks').update(row).eq('id',editId):await db.from('tasks').insert(row);
   btn.disabled=false;btn.textContent='Save Task';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
   closeModal('task-modal');showToast('✓',editId?'Task updated':'Task added');setSyncStatus('online');
 }
-function editTask(id){openTaskModal(id);}
-async function deleteTask(id){if(!confirm('Delete this task?'))return;setSyncStatus('syncing');await db.from('tasks').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Task deleted');}
+function editTask(id){if(!canEdit()){showToast('⚠️','You have view-only access.');return;}openTaskModal(id);}
+async function deleteTask(id){if(!canDelete()){showToast('⚠️','Only admins can delete records.');return;}if(!confirm('Delete this task?'))return;setSyncStatus('syncing');await db.from('tasks').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Task deleted');}
 
 // ── SUBMISSION CRUD ──────────────────────────────────────────────────────────
 function populateProductDatalist(){
@@ -1173,14 +1206,15 @@ async function saveSubmission(){
   if(!subId||!product){alert('Submission ID and Product are required.');return;}
   const btn=document.getElementById('sub-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('sub-edit-id').value;
-  const row={id:subId,product,type:document.getElementById('sub-type').value,category:document.getElementById('sub-category').value||null,classification:document.getElementById('sub-classification').value||null,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim()};
+  const _ssession=getSession();
+  const row={id:subId,product,type:document.getElementById('sub-type').value,category:document.getElementById('sub-category').value||null,classification:document.getElementById('sub-classification').value||null,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim(),...(!editSubId&&{created_by:_ssession?.name||'Unknown',created_at_user:new Date().toISOString()})};
   const{error}=editId?await db.from('submissions').update(row).eq('id',editId):await db.from('submissions').insert(row);
   btn.disabled=false;btn.textContent='Save Submission';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
   closeModal('sub-modal');showToast('✓',editId?'Submission updated':'Submission added');setSyncStatus('online');
 }
-function editSub(id){openSubModal(id);}
-async function deleteSub(id){if(!confirm('Delete this submission?'))return;setSyncStatus('syncing');await db.from('submissions').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Submission deleted');}
+function editSub(id){if(!canEdit()){showToast('⚠️','You have view-only access.');return;}openSubModal(id);}
+async function deleteSub(id){if(!canDelete()){showToast('⚠️','Only admins can delete records.');return;}if(!confirm('Delete this submission?'))return;setSyncStatus('syncing');await db.from('submissions').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Submission deleted');}
 
 // ── PRODUCT CRUD ─────────────────────────────────────────────────────────────
 function openProdModal(id){
@@ -1196,14 +1230,16 @@ async function saveProduct(){
   const btn=document.getElementById('prod-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('prod-edit-id').value;
   const id=editId||uid();
-  const row={id,name,internal_id:document.getElementById('prod-internal-id').value.trim(),category:document.getElementById('prod-category').value,classification:document.getElementById('prod-classification').value||null,therapeutic_area:document.getElementById('prod-ta').value.trim(),phase:document.getElementById('prod-phase').value,owner:document.getElementById('prod-owner').value.trim(),reg_status:document.getElementById('prod-reg-status').value||null,reg_no:document.getElementById('prod-reg-no').value.trim(),renewal_date:document.getElementById('prod-renewal-date').value||null,country:document.getElementById('prod-country').value.trim()||null,ref_type:document.getElementById('prod-ref-type').value||null,description:document.getElementById('prod-desc').value.trim()};
+  const _psession=getSession();
+  const editProdId=document.getElementById('prod-edit-id').value;
+  const row={id,name,internal_id:document.getElementById('prod-internal-id').value.trim(),category:document.getElementById('prod-category').value,classification:document.getElementById('prod-classification').value||null,therapeutic_area:document.getElementById('prod-ta').value.trim(),phase:document.getElementById('prod-phase').value,owner:document.getElementById('prod-owner').value.trim(),reg_status:document.getElementById('prod-reg-status').value||null,reg_no:document.getElementById('prod-reg-no').value.trim(),renewal_date:document.getElementById('prod-renewal-date').value||null,country:document.getElementById('prod-country').value.trim()||null,ref_type:document.getElementById('prod-ref-type').value||null,description:document.getElementById('prod-desc').value.trim(),...(!editProdId&&{created_by:_psession?.name||'Unknown',created_at_user:new Date().toISOString()})};
   const{error}=editId?await db.from('products').update(row).eq('id',editId):await db.from('products').insert(row);
   btn.disabled=false;btn.textContent='Save Product';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
   closeModal('prod-modal');showToast('✓',editId?'Product updated':'Product added');setSyncStatus('online');
 }
-function editProd(id){openProdModal(id);}
-async function deleteProd(id){if(!confirm('Delete this product?'))return;setSyncStatus('syncing');await db.from('products').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Product deleted');}
+function editProd(id){if(!canEdit()){showToast('⚠️','You have view-only access.');return;}openProdModal(id);}
+async function deleteProd(id){if(!canDelete()){showToast('⚠️','Only admins can delete records.');return;}if(!confirm('Delete this product?'))return;setSyncStatus('syncing');await db.from('products').delete().eq('id',id);setSyncStatus('online');showToast('🗑','Product deleted');}
 
 // ── WORKFLOW ─────────────────────────────────────────────────────────────────
 let workflows = [];
@@ -1530,6 +1566,39 @@ async function sendNotificationEmails(){
 
 
 
+
+// ── AUDIT LOG ─────────────────────────────────────────────────────────────────
+function renderAuditLog(){
+  if(currentPage!=='auditlog') return;
+  const ftype = document.getElementById('audit-filter-type')?.value||'';
+  // Build audit entries from all data with createdBy
+  let entries = [];
+  tasks.forEach(t=>{ if(t.createdBy) entries.push({type:'task',label:t.title,createdBy:t.createdBy,createdAt:t.createdAt}); });
+  submissions.forEach(s=>{ if(s.createdBy) entries.push({type:'submission',label:s.id+' — '+s.product,createdBy:s.createdBy,createdAt:s.createdAt}); });
+  products.forEach(p=>{ if(p.createdBy) entries.push({type:'product',label:p.name,createdBy:p.createdBy,createdAt:p.createdAt}); });
+  projects.forEach(p=>{ if(p.createdBy) entries.push({type:'project',label:p.name,createdBy:p.createdBy,createdAt:p.createdAt}); });
+  workflows.forEach(w=>{ if(w.createdBy) entries.push({type:'workflow',label:w.title,createdBy:w.createdBy,createdAt:w.createdAt}); });
+
+  if(ftype) entries = entries.filter(e=>e.type===ftype);
+  entries.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+
+  const typeColors = {task:'var(--blue)',submission:'var(--teal)',product:'var(--gold)',project:'var(--purple)',workflow:'var(--orange)'};
+  const typeLabels = {task:'Task',submission:'Submission',product:'Product',project:'Project',workflow:'Workflow'};
+
+  const tbody = document.getElementById('audit-tbody');
+  const empty = document.getElementById('audit-empty');
+  document.getElementById('audit-count').textContent = entries.length+' record'+(entries.length!==1?'s':'');
+
+  if(!entries.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML = entries.map(e=>`<tr>
+    <td><span style="background:${typeColors[e.type]}22;color:${typeColors[e.type]};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">${typeLabels[e.type]}</span></td>
+    <td style="font-weight:500;">${e.label}</td>
+    <td><div style="display:flex;align-items:center;gap:6px;"><div class="avatar" style="background:${aColor(e.createdBy)};width:22px;height:22px;font-size:9px;">${ini(e.createdBy)}</div>${e.createdBy}</div></td>
+    <td style="color:var(--text-muted);font-size:12.5px;">${e.createdAt?new Date(e.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'N/A'}</td>
+  </tr>`).join('');
+}
+
 // ── CLASSIFICATION HELPERS ────────────────────────────────────────────────────
 const CLASSIFICATIONS = {
   'Drug': [],
@@ -1586,6 +1655,7 @@ function openTaskDetail(id){
       ${sub?`<div><div class="detail-label">Linked Submission</div><div class="detail-value">📋 ${sub.id}</div></div>`:''}
       ${t.desc?`<div style="grid-column:1/-1;"><div class="detail-label">Description</div><div class="detail-value" style="white-space:pre-wrap;">${t.desc}</div></div>`:''}
       ${t.notes?`<div style="grid-column:1/-1;"><div class="detail-label">Notes</div><div class="detail-value" style="white-space:pre-wrap;">${t.notes}</div></div>`:''}
+      ${(t.createdBy ? '<div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px;"><div class="detail-label">Created By</div><div class="detail-value" style="font-size:12px;color:var(--text-muted);">👤 ' + t.createdBy + (t.createdAt ? ' | ' + new Date(t.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '') + '</div></div>' : '')}
     </div>
     <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
@@ -1614,6 +1684,7 @@ function openSubDetail(id){
       <div><div class="detail-label">Target Date</div><div class="detail-value ${dueCls(s.pdufa)}">${fmt(s.pdufa)||'—'}</div></div>
       ${proj?`<div style="grid-column:1/-1;"><div class="detail-label">Project</div><div class="detail-value">📁 ${proj.name}</div></div>`:''}
       ${s.notes?`<div style="grid-column:1/-1;"><div class="detail-label">Notes</div><div class="detail-value" style="white-space:pre-wrap;">${s.notes}</div></div>`:''}
+      ${(s.createdBy ? '<div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px;"><div class="detail-label">Created By</div><div class="detail-value" style="font-size:12px;color:var(--text-muted);">👤 ' + s.createdBy + (s.createdAt ? ' | ' + new Date(s.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '') + '</div></div>' : '')}
     </div>
     <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
@@ -1645,6 +1716,7 @@ function openProdDetail(id){
       <div><div class="detail-label">Country of Origin</div><div class="detail-value">${p.country||'—'}</div></div>
       <div><div class="detail-label">Owner / Manufacturer</div><div class="detail-value">${p.owner||'—'}</div></div>
       ${p.desc?`<div style="grid-column:1/-1;"><div class="detail-label">Description</div><div class="detail-value" style="white-space:pre-wrap;">${p.desc}</div></div>`:''}
+      ${(p.createdBy ? '<div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;margin-top:4px;"><div class="detail-label">Created By</div><div class="detail-value" style="font-size:12px;color:var(--text-muted);">👤 ' + p.createdBy + (p.createdAt ? ' | ' + new Date(p.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '') + '</div></div>' : '')}
     </div>
     <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
@@ -2186,7 +2258,8 @@ async function saveProject(){
   const btn=document.getElementById('proj-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('proj-edit-id').value;
   const id=editId||uid();
-  const row={id,name,status:document.getElementById('proj-status').value,responsible:document.getElementById('proj-responsible').value.trim(),prod_link:document.getElementById('proj-prod-link').value||null,sub_link:document.getElementById('proj-sub-link').value||null,description:document.getElementById('proj-desc').value.trim()};
+  const _prsession=getSession();
+  const row={id,name,status:document.getElementById('proj-status').value,responsible:document.getElementById('proj-responsible').value.trim(),prod_link:document.getElementById('proj-prod-link').value||null,sub_link:document.getElementById('proj-sub-link').value||null,description:document.getElementById('proj-desc').value.trim(),...(!editId&&{created_by:_prsession?.name||'Unknown',created_at_user:new Date().toISOString()})};
   const{error}=editId?await db.from('projects').update(row).eq('id',editId):await db.from('projects').insert(row);
   btn.disabled=false;btn.textContent='Save Project';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
@@ -2194,6 +2267,7 @@ async function saveProject(){
 }
 
 async function deleteProject(id){
+  if(!canDelete()){showToast('⚠️','Only admins can delete records.');return;}
   if(!confirm('Delete this project? Tasks linked to it will remain but lose the project link.'))return;
   setSyncStatus('syncing');
   await db.from('projects').delete().eq('id',id);
@@ -2202,9 +2276,16 @@ async function deleteProject(id){
 
 // ── SIMPLE AUTH ──────────────────────────────────────────────────────────────
 const USERS = {
-  'nada.youssef@dafholding.com':       { password: 'DAF@2026', name: 'Nada Youssef' },
-  'nesreen.abdelfattah@dafholding.com':{ password: 'DAF@2026', name: 'Nesreen Abdel Fattah' },
+  'nada.youssef@dafholding.com':       { password: 'DAF@2026', name: 'Nada Youssef',        role: 'admin' },
+  'nesreen.abdelfattah@dafholding.com':{ password: 'DAF@2026', name: 'Nesreen Abdel Fattah', role: 'editor' },
 };
+// Role permissions
+const ROLE_CAN_DELETE = ['admin'];
+const ROLE_CAN_EDIT   = ['admin','editor'];
+const ROLE_CAN_ADD    = ['admin','editor'];
+function canDelete(){ const s=getSession(); return s&&ROLE_CAN_DELETE.includes(s.role); }
+function canEdit(){   const s=getSession(); return s&&ROLE_CAN_EDIT.includes(s.role); }
+function canAdd(){    const s=getSession(); return s&&ROLE_CAN_ADD.includes(s.role); }
 
 function getSession(){ try{ return JSON.parse(sessionStorage.getItem('ra_session')); }catch{ return null; } }
 function setSession(u){ sessionStorage.setItem('ra_session', JSON.stringify(u)); }
@@ -2220,7 +2301,8 @@ function showApp(user){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('main-app').style.display = 'flex';
   const name = user.name || user.email;
-  document.getElementById('user-email-display').textContent = name;
+  const roleLabel = {'admin':'Admin','editor':'Editor','viewer':'Viewer'}[user.role||'viewer'];
+  document.getElementById('user-email-display').textContent = name + ' · ' + roleLabel;
   const initials = name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
   loadAll().then(()=>{ subscribeRealtime(); sendNotificationEmails(); });
@@ -2245,7 +2327,7 @@ function doLogin(){
     const user = USERS[email];
     if(user && user.password === password){
       errEl.classList.remove('show');
-      setSession({ email, name: user.name });
+      setSession({ email, name: user.name, role: user.role||'viewer' });
       showApp({ email, name: user.name });
     } else {
       errEl.textContent='Incorrect email or password.';
