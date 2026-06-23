@@ -326,6 +326,7 @@
       <div class="nav-item" onclick="navigate('reports',this)"><span class="nav-icon">📊</span> Reports</div>
       <div class="nav-item" onclick="navigate('auditlog',this)"><span class="nav-icon">📝</span> Audit Log</div>
       <div class="nav-section-label">Settings</div>
+      <div class="nav-item admin-only" id="nav-users" onclick="navigate('users',this)" style="display:none;"><span class="nav-icon">👥</span> Users</div>
       <div class="nav-item" onclick="navigate('notifications',this)"><span class="nav-icon">🔔</span> Notifications</div>
     </nav>
     <div class="sidebar-footer">
@@ -571,6 +572,54 @@
         </div>
       </div>
 
+
+
+      <!-- USERS -->
+      <div class="page" id="page-users">
+        <div style="padding:24px;max-width:800px;">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">User Management</div>
+              <div class="panel-count" id="users-count">0 users</div>
+              <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openUserModal()">+ Add User</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+                <tbody id="users-tbody"></tbody>
+              </table>
+              <div id="users-empty" class="empty-state" style="display:none;"><div class="empty-icon">👥</div><h3>No users yet</h3></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER MODAL -->
+      <div class="modal-overlay" id="user-modal">
+        <div class="modal" style="max-width:440px;">
+          <div class="modal-header">
+            <h2 id="user-modal-title">Add User</h2>
+            <button class="modal-close" onclick="closeModal('user-modal')">×</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="user-edit-id">
+            <div class="form-group full"><label>Full Name *</label><input type="text" id="user-name" placeholder="e.g. Sara Ahmed"></div>
+            <div class="form-group full"><label>Email *</label><input type="email" id="user-email" placeholder="e.g. sara@dafholding.com"></div>
+            <div class="form-group full"><label>Password *</label><input type="password" id="user-password" placeholder="Set a password"></div>
+            <div class="form-group full"><label>Role</label>
+              <select id="user-role">
+                <option value="viewer">Viewer — read only</option>
+                <option value="editor">Editor — add and edit</option>
+                <option value="admin">Admin — full access</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('user-modal')">Cancel</button>
+            <button class="btn btn-primary" id="user-save-btn" onclick="saveUser()">Save User</button>
+          </div>
+        </div>
+      </div>
 
       <!-- AUDIT LOG -->
       <div class="page" id="page-auditlog">
@@ -965,6 +1014,7 @@ const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.catego
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadAll() {
+  await loadUsers();
   try {
     const [t,s,p,w,pr] = await Promise.all([
       db.from('tasks').select('*').order('created_at',{ascending:false}),
@@ -993,8 +1043,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},auditlog:{title:'Audit Log',sub:'Track who created records and when'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',auditlog:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',auditlog:'',users:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -1009,6 +1059,7 @@ function navigate(page,el){
   if(page==='reports'){ initReportFilters(); renderReport(); }
   if(page==='kpi') renderKPI();
   if(page==='auditlog') renderAuditLog();
+  if(page==='users') renderUsers();
 }
 function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();}
 function setTaskFilter(f,el){taskFilter=f;document.querySelectorAll('#page-tasks .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks();}
@@ -1566,6 +1617,112 @@ async function sendNotificationEmails(){
 
 
 
+
+
+// ── USER MANAGEMENT ───────────────────────────────────────────────────────────
+let appUsers = [];
+
+async function loadUsers(){
+  const {data,error} = await db.from('app_users').select('*').order('name');
+  if(!error) appUsers = data||[];
+}
+
+function renderUsers(){
+  if(currentPage!=='users') return;
+  const tbody = document.getElementById('users-tbody');
+  const empty = document.getElementById('users-empty');
+  const count = document.getElementById('users-count');
+  if(!tbody) return;
+  count.textContent = appUsers.length+' user'+(appUsers.length!==1?'s':'');
+  if(!appUsers.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  const roleColors = {admin:'var(--blue)',editor:'var(--teal)',viewer:'var(--text-muted)'};
+  const roleLabels = {admin:'Admin',editor:'Editor',viewer:'Viewer'};
+  const session = getSession();
+  tbody.innerHTML = appUsers.map(u=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar" style="background:${aColor(u.name)}">${ini(u.name)}</div><span style="font-weight:500;">${u.name}</span>${u.email===session?.email?'<span style="font-size:10px;color:var(--text-muted);"> (you)</span>':''}</div></td>
+    <td style="font-size:12.5px;color:var(--text-muted);">${u.email}</td>
+    <td><span style="background:${roleColors[u.role]||'var(--text-muted)'}22;color:${roleColors[u.role]||'var(--text-muted)'};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">${roleLabels[u.role]||u.role}</span></td>
+    <td><div style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="openUserModal('${u.id}')">Edit</button>
+      ${u.email!==session?.email?`<button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="deleteUser('${u.id}')">Del</button>`:''}
+    </div></td>
+  </tr>`).join('');
+}
+
+function openUserModal(id){
+  document.getElementById('user-modal-title').textContent = id ? 'Edit User' : 'Add User';
+  document.getElementById('user-edit-id').value = id||'';
+  if(id){
+    const u = appUsers.find(u=>u.id===id);
+    document.getElementById('user-name').value = u.name;
+    document.getElementById('user-email').value = u.email;
+    document.getElementById('user-password').value = '';
+    document.getElementById('user-role').value = u.role||'viewer';
+    document.getElementById('user-password').placeholder = 'Leave blank to keep current password';
+  } else {
+    ['user-name','user-email','user-password'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('user-password').placeholder = 'Set a password';
+    document.getElementById('user-role').value = 'viewer';
+  }
+  document.getElementById('user-modal').classList.add('open');
+}
+
+async function saveUser(){
+  const name = document.getElementById('user-name').value.trim();
+  const email = document.getElementById('user-email').value.trim().toLowerCase();
+  const password = document.getElementById('user-password').value;
+  const role = document.getElementById('user-role').value;
+  const editId = document.getElementById('user-edit-id').value;
+  if(!name||!email){ alert('Name and email are required.'); return; }
+  if(!editId&&!password){ alert('Password is required for new users.'); return; }
+  const btn=document.getElementById('user-save-btn'); btn.disabled=true; btn.textContent='Saving...';
+  const row = {name, email, role, ...(password&&{password})};
+  let error;
+  if(editId){
+    ({error} = await db.from('app_users').update(row).eq('id',editId));
+  } else {
+    ({error} = await db.from('app_users').insert({...row, id: uid()}));
+  }
+  btn.disabled=false; btn.textContent='Save User';
+  if(error){ showToast('❌','Save failed: '+error.message); return; }
+  showToast('✓', editId?'User updated':'User added');
+  await loadUsers();
+  renderUsers();
+  closeModal('user-modal');
+}
+
+async function deleteUser(id){
+  const u = appUsers.find(u=>u.id===id);
+  if(!confirm('Remove '+u?.name+' from RA Command?')) return;
+  const {error} = await db.from('app_users').delete().eq('id',id);
+  if(error){ showToast('❌','Delete failed: '+error.message); return; }
+  showToast('🗑','User removed');
+  await loadUsers();
+  renderUsers();
+}
+
+async function doLoginFromDB(){
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if(!email||!password){ errEl.textContent='Please enter your email and password.'; errEl.classList.add('show'); return; }
+  btn.disabled=true; btn.textContent='Signing in...';
+  // Query Supabase for user
+  const {data,error} = await db.from('app_users').select('*').eq('email',email).eq('password',password).single();
+  setTimeout(()=>{
+    if(error||!data){
+      errEl.textContent='Incorrect email or password.';
+      errEl.classList.add('show');
+      btn.disabled=false; btn.textContent='Sign In';
+    } else {
+      errEl.classList.remove('show');
+      setSession({email:data.email, name:data.name, role:data.role||'viewer'});
+      showApp({email:data.email, name:data.name, role:data.role||'viewer'});
+    }
+  },400);
+}
 
 // ── AUDIT LOG ─────────────────────────────────────────────────────────────────
 function renderAuditLog(){
@@ -2305,6 +2462,8 @@ function showApp(user){
   document.getElementById('user-email-display').textContent = name + ' · ' + roleLabel;
   const initials = name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
+  // Show admin-only nav
+  document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display = (user.role==='admin')?'':'none'; });
   loadAll().then(()=>{ subscribeRealtime(); sendNotificationEmails(); });
 }
 
@@ -2316,7 +2475,9 @@ function showLogin(){
   document.getElementById('login-password').value = '';
 }
 
-function doLogin(){
+function doLogin(){ doLoginFromDB(); return; 
+// Legacy fallback below (unused)
+function doLogin_legacy(){
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const password = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
@@ -2337,6 +2498,7 @@ function doLogin(){
   }, 400);
 }
 
+} // end doLogin_legacy
 function doLogout(){ showLogin(); }
 
 initAuth();
