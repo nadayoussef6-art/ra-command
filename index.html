@@ -588,7 +588,6 @@
           <div class="panel-header">
             <div class="panel-title">Contracts</div>
             <div class="panel-count" id="contracts-panel-count">0 contracts</div>
-            <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openContractModal()">+ Add Contract</button>
           </div>
           <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
             <input type="text" id="contracts-search" placeholder="🔍  Search contracts by name, party, type, status..." oninput="renderContracts()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
@@ -1100,7 +1099,7 @@ function navigate(page,el){
   if(page==='contracts') renderContracts();
   if(page==='users') renderUsers();
 }
-function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();}
+function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();else if(p==='contracts')openContractModal();}
 function setTaskFilter(f,el){renderTasks();}
 function setSubFilter(f,el){renderSubmissions();}
 
