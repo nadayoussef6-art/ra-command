@@ -322,6 +322,7 @@
       <div class="nav-item" onclick="navigate('submissions',this)"><span class="nav-icon">◻</span> Submissions <span class="nav-badge" id="sub-badge">0</span></div>
       <div class="nav-item" onclick="navigate('products',this)"><span class="nav-icon">◈</span> Products <span class="nav-badge" id="prod-badge">0</span></div>
       <div class="nav-item" onclick="navigate('contracts',this)"><span class="nav-icon">📄</span> Contracts</div>
+      <div class="nav-item" onclick="navigate('comms',this)"><span class="nav-icon">💬</span> Communications</div>
       <div class="nav-section-label">Tools</div>
       <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
       <div class="nav-item" onclick="navigate('reports',this)"><span class="nav-icon">📊</span> Reports</div>
@@ -408,7 +409,7 @@
             <input type="text" id="sub-search" placeholder="🔍  Search submissions by ID, product, type, status, lead..." oninput="renderSubmissions()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
           </div>
           <div class="table-wrap">
-            <table><thead><tr><th>Submission ID</th><th>Product</th><th>Type</th><th>Status</th><th>Submission Date</th><th>Target Date</th><th>Lead</th><th>Actions</th></tr></thead>
+            <table><thead><tr><th>Submission ID</th><th>Product</th><th>Type</th><th>Status</th><th>Ball in Court</th><th>Submission Date</th><th>Target Date</th><th>Lead</th><th>Actions</th></tr></thead>
             <tbody id="subs-tbody"></tbody></table>
             <div id="subs-empty" class="empty-state" style="display:none;"><div class="empty-icon">📋</div><h3>No submissions yet</h3><p>Click "+ Add New" to log your first submission.</p></div>
           </div>
@@ -520,6 +521,14 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
             <div class="panel"><div class="panel-header"><div class="panel-title">Products by Registration Status</div></div><div style="padding:16px;"><canvas id="kpi-prods-status-chart" height="200"></canvas></div></div>
             <div class="panel"><div class="panel-header"><div class="panel-title">Products by Category</div></div><div style="padding:16px;"><canvas id="kpi-prods-cat-chart" height="200"></canvas></div></div>
+          </div>
+
+          <!-- Section: Performance KPIs -->
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Team Performance</div>
+          <div class="stats-row" id="kpi-perf-row" style="margin-bottom:24px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+            <div class="panel"><div class="panel-header"><div class="panel-title">Response Rate by Team Member</div></div><div style="padding:16px;"><canvas id="kpi-perf-response-chart" height="200"></canvas></div></div>
+            <div class="panel"><div class="panel-header"><div class="panel-title">Ball in Court — Submissions</div></div><div style="padding:16px;"><canvas id="kpi-ball-court-chart" height="200"></canvas></div></div>
           </div>
 
           <!-- Section: Projects KPIs -->
@@ -656,6 +665,76 @@
         </div>
       </div>
 
+
+      <!-- COMMUNICATIONS -->
+      <div class="page" id="page-comms">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Communications Log</div>
+            <div class="panel-count" id="comms-panel-count">0 entries</div>
+          </div>
+          <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="text" id="comms-search" placeholder="🔍  Search by subject, party, channel, team member, submission..." oninput="renderComms()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Direction</th><th>Channel</th><th>Party</th><th>Subject</th><th>Logged By</th><th>Linked Submission</th><th>Response Deadline</th><th>Response Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="comms-tbody"></tbody>
+            </table>
+            <div id="comms-empty" class="empty-state" style="display:none;"><div class="empty-icon">💬</div><h3>No communications logged yet</h3><p>Click "+ Add Communication" to start tracking.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMMUNICATION MODAL -->
+      <div class="modal-overlay" id="comm-modal">
+        <div class="modal" style="max-width:620px;">
+          <div class="modal-header">
+            <h2 id="comm-modal-title">Log Communication</h2>
+            <button class="modal-close" onclick="closeModal('comm-modal')">×</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="comm-edit-id">
+            <div class="form-group"><label>Date *</label><input type="date" id="comm-date"></div>
+            <div class="form-group"><label>Direction</label>
+              <select id="comm-direction">
+                <option value="sent">Sent (Outgoing)</option>
+                <option value="received">Received (Incoming)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Channel</label>
+              <select id="comm-channel">
+                <option>Email</option>
+                <option>Meeting</option>
+                <option>Portal Submission</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Party</label>
+              <select id="comm-party">
+                <option>EDA</option>
+                <option>Manufacturer</option>
+                <option>Internal (DAF)</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group full"><label>Subject *</label><input type="text" id="comm-subject" placeholder="e.g. Response to EDA technical query on Orabloc dossier"></div>
+            <div class="form-group"><label>Logged By (Team Member)</label>
+              <select id="comm-logged-by">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Linked Submission</label><select id="comm-sub-link"><option value="">— None —</option></select></div>
+            <div class="form-group"><label>Response Deadline</label><input type="date" id="comm-deadline"></div>
+            <div class="form-group"><label>Response Date</label><input type="date" id="comm-response-date"></div>
+            <div class="form-group full"><label>Notes</label><textarea id="comm-notes" placeholder="Key details, action items, attachments mentioned..."></textarea></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('comm-modal')">Cancel</button>
+            <button class="btn btn-primary" id="comm-save-btn" onclick="saveComm()">Save</button>
+          </div>
+        </div>
+      </div>
+
       <!-- AUDIT LOG -->
       <div class="page" id="page-auditlog">
         <div style="padding:24px;max-width:900px;">
@@ -702,6 +781,8 @@
                   <option value="products">Products Registration</option>
                   <option value="projects">Project Progress</option>
                   <option value="manufacturers">Manufacturers</option>
+                  <option value="performance">Team Performance</option>
+                  <option value="communications">Communications Log</option>
                 </select>
               </div>
               <div class="form-group" style="min-width:160px;margin:0;">
@@ -897,6 +978,14 @@
         <div class="form-group"><label>Submission Date</label><input type="date" id="sub-date"></div>
         <div class="form-group"><label>Target / PDUFA Date</label><input type="date" id="sub-pdufa"></div>
         <div class="form-group"><label>Regulatory Lead</label><input type="text" id="sub-lead" placeholder="Full name"></div>
+        <div class="form-group"><label>Ball in Court</label><select id="sub-ball-in-court">
+  <option value="">— Not Set —</option>
+  <option>Nesreen</option>
+  <option>Nada</option>
+  <option>EDA</option>
+  <option>Manufacturer</option>
+  <option>Other</option>
+</select></div>
         <div class="form-group"><label>Project</label><select id="sub-proj-link"><option value="">— No Project —</option></select></div>
         <div class="form-group full"><label>Notes</label><textarea id="sub-notes" placeholder="Agency correspondence, special designations, etc."></textarea></div>
       </div>
@@ -1045,13 +1134,14 @@ function setSyncStatus(s){const dot=document.getElementById('sync-dot'),lbl=docu
 // ── MAPPERS ──────────────────────────────────────────────────────────────────
 const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',projLink:r.proj_link||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 const mPrj=r=>({id:r.id,name:r.name,status:r.status||'active',responsible:r.responsible||'',prodLink:r.prod_link||'',subLink:r.sub_link||'',desc:r.description||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
-const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',category:r.category||'',classification:r.classification||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
+const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',category:r.category||'',classification:r.classification||'',ballInCourt:r.ball_in_court||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',classification:r.classification||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadAll() {
   await loadUsers();
   await loadContracts();
+  await loadComms();
   try {
     const [t,s,p,w,pr] = await Promise.all([
       db.from('tasks').select('*').order('created_at',{ascending:false}),
@@ -1080,8 +1170,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',auditlog:'',users:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},comms:{title:'Communications Log',sub:'Track all outgoing and incoming communications'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',comms:'Add Communication',auditlog:'',users:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -1097,14 +1187,15 @@ function navigate(page,el){
   if(page==='kpi') renderKPI();
   if(page==='auditlog') renderAuditLog();
   if(page==='contracts') renderContracts();
+  if(page==='comms'){ populateCommSelects(); renderComms(); }
   if(page==='users') renderUsers();
 }
-function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();else if(p==='contracts')openContractModal();}
+function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();else if(p==='contracts')openContractModal();else if(p==='comms')openCommModal();}
 function setTaskFilter(f,el){renderTasks();}
 function setSubFilter(f,el){renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();renderComms();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
 function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
@@ -1186,7 +1277,7 @@ function renderSubmissions(){
   const tb=document.getElementById('subs-tbody'),em=document.getElementById('subs-empty');
   document.getElementById('sub-panel-count').textContent=submissions.length+' submission'+(submissions.length!==1?'s':'');
   if(!f.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';
-  tb.innerHTML=f.map(s=>`<tr onclick="openSubDetail('${s.id}')" style="cursor:pointer;"><td><span style="font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;">${s.id}</span></td><td><span style="font-weight:500;">${s.product}</span></td><td><span class="type-pill">${s.type}</span></td><td>${sBadge(s.status)}</td><td><span class="due-date due-ok">${fmt(s.date)}</span></td><td><span class="due-date ${dueCls(s.pdufa)}">${fmt(s.pdufa)}</span></td><td><div class="assignee">${s.lead?`<div class="avatar" style="background:${aColor(s.lead)};width:22px;height:22px;font-size:9px;">${ini(s.lead)}</div><span>${s.lead}</span>`:'<span style="color:var(--text-muted)">—</span>'}</div></td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editSub('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="event.stopPropagation();deleteSub('${s.id}')">Del</button></div></td></tr>`).join('');
+  tb.innerHTML=f.map(s=>`<tr onclick="openSubDetail('${s.id}')" style="cursor:pointer;"><td><span style="font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;">${s.id}</span></td><td><span style="font-weight:500;">${s.product}</span></td><td><span class="type-pill">${s.type}</span></td><td>${sBadge(s.status)}</td><td>${s.ballInCourt?`<span style="background:var(--gold-light);color:var(--gold);border-radius:20px;padding:2px 8px;font-size:11px;">🎯 ${s.ballInCourt}</span>`:'—'}</td><td><span class="due-date due-ok">${fmt(s.date)}</span></td><td><span class="due-date ${dueCls(s.pdufa)}">${fmt(s.pdufa)}</span></td><td><div class="assignee">${s.lead?`<div class="avatar" style="background:${aColor(s.lead)};width:22px;height:22px;font-size:9px;">${ini(s.lead)}</div><span>${s.lead}</span>`:'<span style="color:var(--text-muted)">—</span>'}</div></td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editSub('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="event.stopPropagation();deleteSub('${s.id}')">Del</button></div></td></tr>`).join('');
 }
 
 function populateProdFilterDropdowns(){
@@ -1259,8 +1350,8 @@ function openSubModal(id){
   populateProjSelects();
   document.getElementById('sub-modal-title').textContent=id?'Edit Submission':'New Submission';
   document.getElementById('sub-edit-id').value=id||'';
-  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-proj-link').value=s.projLink||'';document.getElementById('sub-category').value=s.category||'';updateSubClassification();document.getElementById('sub-classification').value=s.classification||'';document.getElementById('sub-notes').value=s.notes||'';}
-  else{['sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';document.getElementById('sub-proj-link').value='';document.getElementById('sub-category').value='';document.getElementById('sub-classification').value='';}
+  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-ball-in-court').value=s.ballInCourt||'';document.getElementById('sub-proj-link').value=s.projLink||'';document.getElementById('sub-category').value=s.category||'';updateSubClassification();document.getElementById('sub-classification').value=s.classification||'';document.getElementById('sub-notes').value=s.notes||'';}
+  else{['sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';document.getElementById('sub-ball-in-court').value='';document.getElementById('sub-proj-link').value='';document.getElementById('sub-category').value='';document.getElementById('sub-classification').value='';}
   document.getElementById('sub-modal').classList.add('open');
 }
 async function saveSubmission(){
@@ -1269,7 +1360,7 @@ async function saveSubmission(){
   const btn=document.getElementById('sub-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('sub-edit-id').value;
   const _ssession=getSession();
-  const row={id:subId,product,type:document.getElementById('sub-type').value,category:document.getElementById('sub-category').value||null,classification:document.getElementById('sub-classification').value||null,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim(),...(!editSubId&&{created_by:_ssession?.name||'Unknown',created_at_user:new Date().toISOString()})};
+  const row={id:subId,product,type:document.getElementById('sub-type').value,category:document.getElementById('sub-category').value||null,classification:document.getElementById('sub-classification').value||null,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),ball_in_court:document.getElementById('sub-ball-in-court').value||null,proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim(),...(!editSubId&&{created_by:_ssession?.name||'Unknown',created_at_user:new Date().toISOString()})};
   const{error}=editId?await db.from('submissions').update(row).eq('id',editId):await db.from('submissions').insert(row);
   btn.disabled=false;btn.textContent='Save Submission';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
@@ -1630,6 +1721,178 @@ async function sendNotificationEmails(){
 
 
 
+
+
+// ── COMMUNICATIONS LOG ────────────────────────────────────────────────────────
+let comms = [];
+
+const mComm = r => ({
+  id: r.id, date: r.date||'', direction: r.direction||'sent',
+  channel: r.channel||'Email', party: r.party||'EDA',
+  subject: r.subject||'', loggedBy: r.logged_by||'',
+  subLink: r.sub_link||'', deadline: r.deadline||'',
+  responseDate: r.response_date||'', notes: r.notes||'',
+  createdBy: r.created_by||'', createdAt: r.created_at_user||r.created_at||''
+});
+
+async function loadComms(){
+  const {data,error} = await db.from('communications').select('*').order('date',{ascending:false});
+  if(!error) comms = (data||[]).map(mComm);
+}
+
+function commStatus(c){
+  const now = new Date(); now.setHours(0,0,0,0);
+  if(c.responseDate) return {label:'Responded', bg:'var(--green-light)', color:'var(--green)'};
+  if(!c.deadline) return {label:'No Deadline', bg:'var(--surface2)', color:'var(--text-muted)'};
+  const dl = new Date(c.deadline);
+  if(dl < now) return {label:'Overdue', bg:'var(--accent-light)', color:'var(--accent)'};
+  const days = Math.ceil((dl-now)/86400000);
+  if(days<=2) return {label:'Due Soon', bg:'var(--gold-light)', color:'var(--gold)'};
+  return {label:'On Track', bg:'var(--blue-light)', color:'var(--blue)'};
+}
+
+function renderComms(){
+  const tb = document.getElementById('comms-tbody');
+  const em = document.getElementById('comms-empty');
+  const cnt = document.getElementById('comms-panel-count');
+  if(!tb) return;
+  const q = (document.getElementById('comms-search')?.value||'').toLowerCase().trim();
+  let f = [...comms];
+  if(q) f = f.filter(c=>[c.subject,c.party,c.channel,c.direction,c.loggedBy,c.notes,
+    submissions.find(s=>s.id===c.subLink)?.id||''
+  ].some(v=>(v||'').toLowerCase().includes(q)));
+  cnt.textContent = f.length+' entr'+(f.length!==1?'ies':'y');
+  if(!f.length){ tb.innerHTML=''; em.style.display='block'; return; }
+  em.style.display='none';
+  tb.innerHTML = f.map(c=>{
+    const st = commStatus(c);
+    const ls = submissions.find(s=>s.id===c.subLink);
+    const dirColor = c.direction==='sent' ? 'var(--blue)' : 'var(--teal)';
+    const dirLabel = c.direction==='sent' ? '↗ Sent' : '↙ Received';
+    return `<tr onclick="openCommDetail('${c.id}')" style="cursor:pointer;">
+      <td style="font-size:12.5px;">${fmt(c.date)||'—'}</td>
+      <td><span style="background:${dirColor}22;color:${dirColor};border-radius:20px;padding:2px 8px;font-size:11px;font-weight:500;">${dirLabel}</span></td>
+      <td style="font-size:12.5px;">${c.channel}</td>
+      <td><span class="type-pill">${c.party}</span></td>
+      <td style="font-weight:500;max-width:200px;">${c.subject}</td>
+      <td>${c.loggedBy?`<div class="assignee"><div class="avatar" style="background:${aColor(c.loggedBy)};width:22px;height:22px;font-size:9px;">${ini(c.loggedBy)}</div><span style="font-size:12px;">${c.loggedBy}</span></div>`:'—'}</td>
+      <td style="font-size:12px;">${ls?`<span style="font-family:'DM Mono',monospace;">${ls.id}</span>`:'—'}</td>
+      <td style="font-size:12px;${!c.responseDate&&c.deadline&&new Date(c.deadline)<new Date()?'color:var(--accent);font-weight:600;':''}">${fmt(c.deadline)||'—'}</td>
+      <td style="font-size:12px;color:var(--green);">${fmt(c.responseDate)||'—'}</td>
+      <td><span style="background:${st.bg};color:${st.color};border-radius:20px;padding:2px 8px;font-size:11px;font-weight:500;">${st.label}</span></td>
+      <td><div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editComm('${c.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="event.stopPropagation();deleteComm('${c.id}')">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openCommDetail(id){
+  const c = comms.find(c=>c.id===id);
+  if(!c) return;
+  const ls = submissions.find(s=>s.id===c.subLink);
+  const st = commStatus(c);
+  document.getElementById('detail-modal-content').innerHTML = `
+    <div class="modal-header" style="background:var(--surface2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+      <h2 style="font-size:15px;">${c.subject}</h2>
+      <button class="modal-close" onclick="closeModal('detail-modal')">x</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div><div class="detail-label">Date</div><div class="detail-value">${fmt(c.date)||'—'}</div></div>
+      <div><div class="detail-label">Direction</div><div class="detail-value">${c.direction==='sent'?'↗ Sent':'↙ Received'}</div></div>
+      <div><div class="detail-label">Channel</div><div class="detail-value">${c.channel}</div></div>
+      <div><div class="detail-label">Party</div><div class="detail-value">${c.party}</div></div>
+      <div><div class="detail-label">Logged By</div><div class="detail-value">${c.loggedBy||'—'}</div></div>
+      <div><div class="detail-label">Status</div><div><span style="background:${st.bg};color:${st.color};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">${st.label}</span></div></div>
+      <div><div class="detail-label">Response Deadline</div><div class="detail-value">${fmt(c.deadline)||'—'}</div></div>
+      <div><div class="detail-label">Response Date</div><div class="detail-value" style="color:var(--green);">${fmt(c.responseDate)||'Not yet responded'}</div></div>
+      ${ls?`<div style="grid-column:1/-1;"><div class="detail-label">Linked Submission</div><div class="detail-value">📋 ${ls.id} — ${ls.product}</div></div>`:''}
+      ${c.notes?`<div style="grid-column:1/-1;"><div class="detail-label">Notes</div><div class="detail-value" style="white-space:pre-wrap;">${c.notes}</div></div>`:''}
+    </div>
+    <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('detail-modal');editComm('${c.id}')">Edit</button>
+    </div>`;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function populateCommSelects(){
+  const lb = document.getElementById('comm-logged-by');
+  if(lb){
+    const cur = lb.value;
+    lb.innerHTML = '<option value="">— Select —</option>'+appUsers.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+    lb.value = cur;
+  }
+  const sl = document.getElementById('comm-sub-link');
+  if(sl){
+    sl.innerHTML = '<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  }
+}
+
+function openCommModal(id){
+  document.getElementById('comm-modal-title').textContent = id ? 'Edit Communication' : 'Log Communication';
+  document.getElementById('comm-edit-id').value = id||'';
+  populateCommSelects();
+  if(id){
+    const c = comms.find(c=>c.id===id);
+    document.getElementById('comm-date').value = c.date;
+    document.getElementById('comm-direction').value = c.direction;
+    document.getElementById('comm-channel').value = c.channel;
+    document.getElementById('comm-party').value = c.party;
+    document.getElementById('comm-subject').value = c.subject;
+    document.getElementById('comm-logged-by').value = c.loggedBy;
+    document.getElementById('comm-sub-link').value = c.subLink;
+    document.getElementById('comm-deadline').value = c.deadline;
+    document.getElementById('comm-response-date').value = c.responseDate;
+    document.getElementById('comm-notes').value = c.notes;
+  } else {
+    ['comm-subject','comm-deadline','comm-response-date','comm-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('comm-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('comm-direction').value = 'sent';
+    document.getElementById('comm-channel').value = 'Email';
+    document.getElementById('comm-party').value = 'EDA';
+    document.getElementById('comm-logged-by').value = getSession()?.name||'';
+    document.getElementById('comm-sub-link').value = '';
+  }
+  document.getElementById('comm-modal').classList.add('open');
+}
+
+function editComm(id){ if(!canEdit()){showToast('x','You have view-only access.');return;} openCommModal(id); }
+
+async function saveComm(){
+  const subject = document.getElementById('comm-subject').value.trim();
+  if(!subject){ alert('Subject is required.'); return; }
+  const btn=document.getElementById('comm-save-btn'); btn.disabled=true; btn.textContent='Saving...'; setSyncStatus('syncing');
+  const editId = document.getElementById('comm-edit-id').value;
+  const id = editId||uid();
+  const session = getSession();
+  const row = {
+    id, subject,
+    date: document.getElementById('comm-date').value||null,
+    direction: document.getElementById('comm-direction').value,
+    channel: document.getElementById('comm-channel').value,
+    party: document.getElementById('comm-party').value,
+    logged_by: document.getElementById('comm-logged-by').value||null,
+    sub_link: document.getElementById('comm-sub-link').value||null,
+    deadline: document.getElementById('comm-deadline').value||null,
+    response_date: document.getElementById('comm-response-date').value||null,
+    notes: document.getElementById('comm-notes').value.trim(),
+    ...(!editId&&{created_by:session?.name||'Unknown', created_at_user:new Date().toISOString()})
+  };
+  const {error} = editId ? await db.from('communications').update(row).eq('id',editId) : await db.from('communications').insert(row);
+  btn.disabled=false; btn.textContent='Save';
+  if(error){ showToast('x','Save failed: '+error.message); setSyncStatus('online'); return; }
+  showToast('ok', editId?'Communication updated':'Communication logged');
+  await loadComms(); renderComms(); closeModal('comm-modal'); setSyncStatus('online');
+}
+
+async function deleteComm(id){
+  if(!canDelete()){ showToast('x','Only admins can delete.'); return; }
+  if(!confirm('Delete this communication entry?')) return;
+  await db.from('communications').delete().eq('id',id);
+  await loadComms(); renderComms(); showToast('ok','Deleted');
+}
 
 // ── CONTRACTS ─────────────────────────────────────────────────────────────────
 let contracts = [];
@@ -2049,7 +2312,7 @@ function openSubDetail(id){
       <div><div class="detail-label">Type</div><div><span class="type-pill">${s.type}</span></div></div>
       <div><div class="detail-label">Status</div><div>${sBadge(s.status)}</div></div>
       <div><div class="detail-label">Regulatory Lead</div><div class="detail-value">${s.lead||'—'}</div></div>
-      ${s.category?`<div><div class="detail-label">Category</div><div class="detail-value">${s.category}</div></div>`:''}
+      ${s.ballInCourt?`<div><div class="detail-label">Ball in Court</div><div class="detail-value">🎯 ${s.ballInCourt}</div></div>`:''}${s.category?`<div><div class="detail-label">Category</div><div class="detail-value">${s.category}</div></div>`:''}
       ${s.classification?`<div><div class="detail-label">Classification</div><div class="detail-value">${s.classification}</div></div>`:''}
       <div><div class="detail-label">Submission Date</div><div class="detail-value">${fmt(s.date)||'—'}</div></div>
       <div><div class="detail-label">Target Date</div><div class="detail-value ${dueCls(s.pdufa)}">${fmt(s.pdufa)||'—'}</div></div>
@@ -2230,6 +2493,38 @@ function renderKPI(){
     false
   );
 
+
+  // ── PERFORMANCE ──
+  const members = [...new Set(comms.map(c=>c.loggedBy).filter(Boolean))];
+  const totalComms = comms.length;
+  const responded = comms.filter(c=>c.responseDate).length;
+  const overdue = comms.filter(c=>!c.responseDate&&c.deadline&&new Date(c.deadline)<now).length;
+  const pending = comms.filter(c=>!c.responseDate&&c.deadline&&new Date(c.deadline)>=now).length;
+
+  document.getElementById('kpi-perf-row').innerHTML =
+    kpiStatCard(totalComms,'Total Communications','All logged','#1e3a8a') +
+    kpiStatCard(responded,'Responded',Math.round(responded/Math.max(totalComms,1)*100)+'% response rate','#2d6a2d') +
+    kpiStatCard(overdue,'Overdue Responses',overdue>0?'Needs attention':'All clear',overdue>0?'#c0392b':'#2d6a2d') +
+    kpiStatCard(pending,'Pending Responses','Within deadline','#b8860b');
+
+  // Response rate per member
+  const memberNames = members.length ? members : ['No data'];
+  const memberResponded = members.map(m=>comms.filter(c=>c.loggedBy===m&&c.responseDate).length);
+  const memberTotal = members.map(m=>comms.filter(c=>c.loggedBy===m).length);
+  const memberRates = memberTotal.map((t,i)=>t?Math.round(memberResponded[i]/t*100):0);
+  makeBar('kpi-perf-response-chart', memberNames, memberRates,
+    memberRates.map(r=>r>=80?'#2d6a2d':r>=50?'#b8860b':'#c0392b'), false
+  );
+
+  // Ball in court
+  const bicMap = {};
+  submissions.forEach(s=>{ if(s.ballInCourt){ bicMap[s.ballInCourt]=(bicMap[s.ballInCourt]||0)+1; } });
+  if(Object.keys(bicMap).length){
+    makeDonut('kpi-ball-court-chart', Object.keys(bicMap), Object.values(bicMap),
+      ['#1e3a8a','#2d6a2d','#b8860b','#c05800','#c0392b']
+    );
+  }
+
   // ── PROJECTS ──
   const allProj = projects;
   const activeProj = allProj.filter(p=>p.status==='active').length;
@@ -2408,6 +2703,43 @@ function renderReport(){
     });
   }
 
+
+  else if(f.type==='performance'){
+    const members2 = [...new Set(comms.map(c=>c.loggedBy).filter(Boolean))];
+    let data = members2.map(m=>{
+      const mc = comms.filter(c=>c.loggedBy===m);
+      if(f.from||f.to){
+        mc.filter(c=>(!f.from||c.date>=f.from)&&(!f.to||c.date<=f.to));
+      }
+      const responded2 = mc.filter(c=>c.responseDate).length;
+      const overdue2 = mc.filter(c=>!c.responseDate&&c.deadline&&new Date(c.deadline)<new Date()).length;
+      const avgDays = mc.filter(c=>c.responseDate&&c.date).reduce((acc,c)=>{
+        return acc+(new Date(c.responseDate)-new Date(c.date))/86400000;
+      },0) / Math.max(mc.filter(c=>c.responseDate&&c.date).length,1);
+      return {member:m,total:mc.length,responded:responded2,overdue:overdue2,rate:mc.length?Math.round(responded2/mc.length*100):0,avgDays:isNaN(avgDays)?0:Math.round(avgDays)};
+    });
+    count=data.length;
+    summary=statBox(comms.length,'Total Comms','var(--blue)')+statBox(comms.filter(c=>c.responseDate).length,'Responded','var(--green)')+statBox(comms.filter(c=>!c.responseDate&&c.deadline&&new Date(c.deadline)<new Date()).length,'Overdue','var(--accent)');
+    thead=`<tr><th>Team Member</th><th>Total Comms</th><th>Responded</th><th>Response Rate</th><th>Overdue</th><th>Avg Response (days)</th></tr>`;
+    rows=data.map(d=>`<tr><td style="font-weight:600;">${d.member}</td><td style="font-family:'DM Mono',monospace;">${d.total}</td><td style="font-family:'DM Mono',monospace;color:var(--green);">${d.responded}</td><td style="font-family:'DM Mono',monospace;font-weight:600;color:${d.rate>=80?'var(--green)':d.rate>=50?'var(--gold)':'var(--accent)'};">${d.rate}%</td><td style="font-family:'DM Mono',monospace;color:${d.overdue?'var(--accent)':'var(--green)'};">${d.overdue}</td><td style="font-family:'DM Mono',monospace;">${d.avgDays} days</td></tr>`);
+  }
+
+  else if(f.type==='communications'){
+    let data=[...comms];
+    if(f.from) data=data.filter(c=>c.date&&c.date>=f.from);
+    if(f.to) data=data.filter(c=>c.date&&c.date<=f.to);
+    if(f.status==='open') data=data.filter(c=>!c.responseDate);
+    else if(f.status==='done') data=data.filter(c=>!!c.responseDate);
+    count=data.length;
+    const sent=data.filter(c=>c.direction==='sent').length;
+    const received=data.filter(c=>c.direction==='received').length;
+    summary=statBox(sent,'Sent','var(--blue)')+statBox(received,'Received','var(--teal)')+statBox(data.filter(c=>c.responseDate).length,'Responded','var(--green)')+statBox(data.filter(c=>!c.responseDate&&c.deadline&&new Date(c.deadline)<new Date()).length,'Overdue','var(--accent)');
+    thead=`<tr><th>Date</th><th>Direction</th><th>Channel</th><th>Party</th><th>Subject</th><th>Logged By</th><th>Deadline</th><th>Response Date</th><th>Status</th></tr>`;
+    rows=data.map(c=>{
+      const st=commStatus(c);
+      return `<tr><td>${fmt(c.date)}</td><td>${c.direction==='sent'?'Sent':'Received'}</td><td>${c.channel}</td><td>${c.party}</td><td>${c.subject}</td><td>${c.loggedBy||'—'}</td><td>${fmt(c.deadline)||'—'}</td><td>${fmt(c.responseDate)||'—'}</td><td>${st.label}</td></tr>`;
+    });
+  }
   document.getElementById('rpt-summary').innerHTML=summary;
   document.getElementById('rpt-thead').innerHTML=thead;
   document.getElementById('rpt-tbody').innerHTML=rows.join('');
