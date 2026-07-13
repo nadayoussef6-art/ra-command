@@ -323,6 +323,7 @@
       <div class="nav-item" onclick="navigate('products',this)"><span class="nav-icon">◈</span> Products <span class="nav-badge" id="prod-badge">0</span></div>
       <div class="nav-item" onclick="navigate('contracts',this)"><span class="nav-icon">📄</span> Contracts</div>
       <div class="nav-item" onclick="navigate('comms',this)"><span class="nav-icon">💬</span> Communications</div>
+      <div class="nav-item" onclick="navigate('assessments',this)"><span class="nav-icon">🔬</span> Assessments</div>
       <div class="nav-section-label">Tools</div>
       <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
       <div class="nav-item" onclick="navigate('reports',this)"><span class="nav-icon">📊</span> Reports</div>
@@ -521,6 +522,14 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
             <div class="panel"><div class="panel-header"><div class="panel-title">Products by Registration Status</div></div><div style="padding:16px;"><canvas id="kpi-prods-status-chart" height="200"></canvas></div></div>
             <div class="panel"><div class="panel-header"><div class="panel-title">Products by Category</div></div><div style="padding:16px;"><canvas id="kpi-prods-cat-chart" height="200"></canvas></div></div>
+          </div>
+
+          <!-- Section: Assessment KPIs -->
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Document Assessments</div>
+          <div class="stats-row" id="kpi-assess-row" style="margin-bottom:24px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+            <div class="panel"><div class="panel-header"><div class="panel-title">Assessment Outcomes</div></div><div style="padding:16px;"><canvas id="kpi-assess-outcome-chart" height="200"></canvas></div></div>
+            <div class="panel"><div class="panel-header"><div class="panel-title">Document Status Distribution</div></div><div style="padding:16px;"><canvas id="kpi-assess-docs-chart" height="200"></canvas></div></div>
           </div>
 
           <!-- Section: Performance KPIs -->
@@ -735,6 +744,103 @@
         </div>
       </div>
 
+
+      <!-- ASSESSMENTS -->
+      <div class="page" id="page-assessments">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Document Assessments</div>
+            <div class="panel-count" id="assessments-panel-count">0 assessments</div>
+          </div>
+          <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="text" id="assessments-search" placeholder="🔍  Search assessments by product, type, assessor, outcome..." oninput="renderAssessments()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Product</th><th>Checklist Type</th><th>Assessor</th><th>Date</th><th>Progress</th><th>Outcome</th><th>Linked Submission</th><th>Actions</th></tr></thead>
+              <tbody id="assessments-tbody"></tbody>
+            </table>
+            <div id="assessments-empty" class="empty-state" style="display:none;"><div class="empty-icon">🔬</div><h3>No assessments yet</h3><p>Click "+ Add Assessment" to start a document assessment.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASSESSMENT MODAL (new/edit) -->
+      <div class="modal-overlay" id="assessment-modal">
+        <div class="modal" style="max-width:520px;">
+          <div class="modal-header">
+            <h2 id="assessment-modal-title">New Assessment</h2>
+            <button class="modal-close" onclick="closeModal('assessment-modal')">×</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="assessment-edit-id">
+            <div class="form-group full"><label>Product Name *</label><input type="text" id="assessment-product" placeholder="e.g. Orabloc Dental Needle" list="assessment-product-list" autocomplete="off"><datalist id="assessment-product-list"></datalist></div>
+            <div class="form-group full"><label>Checklist Type *</label>
+              <select id="assessment-type">
+                <option value="">— Select Type —</option>
+                <option>MD Class I Non-Sterile</option>
+                <option>MD Class IIA/IIB Non-Sterile</option>
+                <option>MD Class IIA/IIB Sterile</option>
+                <option>MD Class III Sterile</option>
+                <option>IVD Self-Testing</option>
+                <option>MD Local with CE Non-Sterile</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Assessor</label><select id="assessment-assessor"><option value="">— Select —</option></select></div>
+            <div class="form-group"><label>Assessment Date</label><input type="date" id="assessment-date"></div>
+            <div class="form-group"><label>Linked Submission</label><select id="assessment-sub-link"><option value="">— None —</option></select></div>
+            <div class="form-group"><label>Linked Product</label><select id="assessment-prod-link"><option value="">— None —</option></select></div>
+            <div class="form-group full"><label>Overall Outcome</label>
+              <select id="assessment-outcome">
+                <option value="">— Pending Assessment —</option>
+                <option value="proceed">✅ Proceed to Registration</option>
+                <option value="resolve">⚠️ Need to Resolve Issues Before Proceeding</option>
+                <option value="reject">❌ Reject — Not Viable for Registration</option>
+                <option value="hold">🔄 On Hold</option>
+              </select>
+            </div>
+            <div class="form-group full"><label>Notes</label><textarea id="assessment-notes" placeholder="Overall assessment notes, key observations..."></textarea></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('assessment-modal')">Cancel</button>
+            <button class="btn btn-primary" id="assessment-save-btn" onclick="saveAssessment()">Save & Open Checklist</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASSESSMENT CHECKLIST PANEL -->
+      <div id="assessment-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;" onclick="closeAssessmentDetail()"></div>
+      <div id="assessment-detail-panel" style="display:none;position:fixed;top:0;right:0;width:780px;max-width:96vw;height:100vh;background:var(--surface);box-shadow:-4px 0 32px rgba(0,0,0,.15);z-index:201;overflow-y:auto;display:flex;flex-direction:column;">
+        <div style="padding:24px 28px 16px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:1;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div>
+              <div id="acp-title" style="font-family:'DM Serif Display',serif;font-size:20px;"></div>
+              <div id="acp-meta" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="acp-outcome" onchange="saveAssessmentOutcome()" style="padding:6px 10px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:12px;background:var(--surface);font-family:'DM Sans',sans-serif;">
+                <option value="">— Pending —</option>
+                <option value="proceed">✅ Proceed to Registration</option>
+                <option value="resolve">⚠️ Resolve Issues First</option>
+                <option value="reject">❌ Reject</option>
+                <option value="hold">🔄 On Hold</option>
+              </select>
+              <button class="modal-close" onclick="closeAssessmentDetail()" style="position:relative;">×</button>
+            </div>
+          </div>
+          <!-- Progress bar -->
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text-muted);">
+            <div style="flex:1;background:var(--border);border-radius:20px;height:6px;overflow:hidden;">
+              <div id="acp-progress-bar" style="height:6px;background:var(--teal);border-radius:20px;transition:width .3s;width:0%;"></div>
+            </div>
+            <span id="acp-progress-text">0 / 0 reviewed</span>
+          </div>
+          <!-- Summary chips -->
+          <div id="acp-summary-chips" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;"></div>
+        </div>
+        <div id="acp-checklist" style="padding:20px 28px;flex:1;"></div>
+      </div>
+
       <!-- AUDIT LOG -->
       <div class="page" id="page-auditlog">
         <div style="padding:24px;max-width:900px;">
@@ -751,6 +857,7 @@
                   <option value="project">Projects</option>
                   <option value="workflow">Workflows</option>
                   <option value="contract">Contracts</option>
+                  <option value="assessment">Assessments</option>
                 </select>
               </div>
             </div>
@@ -783,6 +890,7 @@
                   <option value="manufacturers">Manufacturers</option>
                   <option value="performance">Team Performance</option>
                   <option value="communications">Communications Log</option>
+                  <option value="assessments">Assessments Report</option>
                 </select>
               </div>
               <div class="form-group" style="min-width:160px;margin:0;">
@@ -1142,6 +1250,7 @@ async function loadAll() {
   await loadUsers();
   await loadContracts();
   await loadComms();
+  await loadAssessments();
   try {
     const [t,s,p,w,pr] = await Promise.all([
       db.from('tasks').select('*').order('created_at',{ascending:false}),
@@ -1170,8 +1279,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},comms:{title:'Communications Log',sub:'Track all outgoing and incoming communications'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',comms:'Add Communication',auditlog:'',users:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},comms:{title:'Communications Log',sub:'Track all outgoing and incoming communications'},assessments:{title:'Document Assessments',sub:'Assess registration dossiers against EDA requirements'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',comms:'Add Communication',assessments:'Add Assessment',auditlog:'',users:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -1188,14 +1297,15 @@ function navigate(page,el){
   if(page==='auditlog') renderAuditLog();
   if(page==='contracts') renderContracts();
   if(page==='comms'){ populateCommSelects(); renderComms(); }
+  if(page==='assessments') renderAssessments();
   if(page==='users') renderUsers();
 }
-function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();else if(p==='contracts')openContractModal();else if(p==='comms')openCommModal();}
+function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();else if(p==='contracts')openContractModal();else if(p==='comms')openCommModal();else if(p==='assessments')openAssessmentModal();}
 function setTaskFilter(f,el){renderTasks();}
 function setSubFilter(f,el){renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();renderComms();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();renderComms();renderAssessments();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
 function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
@@ -1723,6 +1833,845 @@ async function sendNotificationEmails(){
 
 
 
+
+// ── ASSESSMENTS ───────────────────────────────────────────────────────────────
+let assessments = [];
+let currentAssessmentId = null;
+
+const ASSESSMENT_CHECKLISTS = {
+  "MD Class I Non-Sterile": [
+    {
+      "num": 1,
+      "section": "General",
+      "text": "Letter of authorization to delegate the import company for registration, stating the name of the product including its commercial name ."
+    },
+    {
+      "num": 2,
+      "section": "Certificates for the products",
+      "text": "Free Sale certificate issued by the Ministry of Health from the country of origin if it is a reference countries (or a FSC certificate from one of the reference countries if the country of origin is a non-reference country) including the trade name of the medical device and the codes or sizes also contains the legal factory and the actual factory (if any)."
+    },
+    {
+      "num": 3,
+      "section": "Certificates for the products",
+      "text": "ISO 13485: 2003 or EN ISO 13485: 2012  issued by internationally accredited body, which authorized to issue these certifications and should include the product category, the previous publications for the  ISO13485 certificate Prior to 2016 will not be accepted"
+    },
+    {
+      "num": 4,
+      "section": "Certificates for the products",
+      "text": "Original declaration of conformity signed and stamped by the legal manufacturer on his letterhead including the commercial name of the product, its codes or sizes - the actual manufacturer name and address – classification - indication of use - manufacturer responsibility - notified body name and number - number of CE certificate issued for the device - kit / set contents in the case of kit / set."
+    },
+    {
+      "num": 5,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Product composition certificate (Raw Material  composition)"
+    },
+    {
+      "num": 6,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Product certificate of analysis and risk analysis, should mention the chemical and physical tests done on the finished product, the applied standard and final results of each test performed."
+    },
+    {
+      "num": 7,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Shelf-Life Certificate is provided by the trade name of the product, intended use and storage conditions."
+    },
+    {
+      "num": 8,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Description of Inner, Outer Label, Master Label sample and insert signed and stamped by the manufacturer and 2 copies of the original artwork for internal and external packaging stamped and signed by the manufacturer."
+    },
+    {
+      "num": 9,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Catalog to describe the product and explain its parts and use in case of need to clarify."
+    },
+    {
+      "num": 10,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "IFU of the product original signed and stamped by the manufacturer company. In the case of Electronic labeling, an IFU approved by the foreign manufacturer is provided. The importing company undertakes to place a copy of the IFU with each packaging imported."
+    },
+    {
+      "num": 11,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Certificate of Materials used in Packaging Materials and Number of Units. Should mention number of units per box and carton (if applicable)"
+    },
+    {
+      "num": 12,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Certificate of compliance with the essential requirement and harmonized standards"
+    },
+    {
+      "num": 13,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Product sample."
+    }
+  ],
+  "MD Class IIA/IIB Non-Sterile": [
+    {
+      "num": 1,
+      "section": "General",
+      "text": "Letter of authorization to delegate the import company for registration, stating the name of the product including its commercial name."
+    },
+    {
+      "num": 2,
+      "section": "General",
+      "text": "Relation declaration between legal manufacturer and any company/ factory involved in any steps of the product manufacturing process, if any"
+    },
+    {
+      "num": 3,
+      "section": "Certificates for the products",
+      "text": "Free Sale certificate issued by the Ministry of Health from the country of origin if it is a reference countries (or a FSC certificate from one of the reference countries if the country of origin is a non-reference country) including the trade name of the medical device and the codes or sizes also contains the legal factory and the actual factory (if any)."
+    },
+    {
+      "num": 4,
+      "section": "Certificates for the products",
+      "text": "CE certificate Full Quality Assurance System Directive 93/42/EEC or EU Regulation 2017/745 of the finished product, with all its components, accessories, and models,that is issued by (a notified body), taking into account the Annex of the specification (Annex) as per the product classification."
+    },
+    {
+      "num": 5,
+      "section": "Certificates for the products",
+      "text": "Notified Body Confirmation Letter (Not applicable for CE MDR)"
+    },
+    {
+      "num": 6,
+      "section": "Certificates for the products",
+      "text": "Manufacturer Self Declaration (Not applicable for CE MDR)"
+    },
+    {
+      "num": 7,
+      "section": "Certificates for the products",
+      "text": "ISO 13485: 2003 or EN ISO 13485: 2012 the previous publications for the ISO13485 certificate Prior to 2016 will not be accepted."
+    },
+    {
+      "num": 8,
+      "section": "Certificates for the products",
+      "text": "Original declaration of conformity signed and stamped by the legal manufacturer on his letterhead including the commercial name of the product, its codes or sizes - the actual manufacturer name and address – classification - indication of use - manufacturer responsibility - notified body name and number - number of CE certificate issued for the device - kit / set contents in the case of kit / set."
+    },
+    {
+      "num": 9,
+      "section": "The technical file",
+      "text": "Product composition certificate (Raw Material composition)"
+    },
+    {
+      "num": 10,
+      "section": "The technical file",
+      "text": "Product certificate of analysis and risk analysis, should mention the chemical and physical tests done on the finished product, the applied standard and final results of each test performed."
+    },
+    {
+      "num": 11,
+      "section": "The technical file",
+      "text": "Shelf-Life Certificate is provided by the trade name of the product, intended use and storage conditions."
+    },
+    {
+      "num": 12,
+      "section": "The technical file",
+      "text": "Description of Inner, Outer Label, Master Label sample and insert signed and stamped by the manufacturer and 2 copies of the original artwork for internal and external packaging stamped and signed by the manufacturer."
+    },
+    {
+      "num": 13,
+      "section": "The technical file",
+      "text": "Catalog to describe the product and explain its parts and use in case of need to clarify."
+    },
+    {
+      "num": 14,
+      "section": "The technical file",
+      "text": "IFU of the product original signed and stamped by the manufacturer company. In the case of Electronic labeling, an IFU approved by the foreign manufacturer is provided. The importing company undertakes to place a copy of the IFU with each packaging imported."
+    },
+    {
+      "num": 15,
+      "section": "The technical file",
+      "text": "Certificate of Materials used in Packaging Materials and Number of Units. Should mention number of units per box and carton (if applicable)"
+    },
+    {
+      "num": 16,
+      "section": "The technical file",
+      "text": "Non Sterile Certificate"
+    },
+    {
+      "num": 16,
+      "section": "The technical file",
+      "text": "Product sample."
+    }
+  ],
+  "MD Class IIA/IIB Sterile": [
+    {
+      "num": 1,
+      "section": "General",
+      "text": "Letter of authorization to delegate the import company for registration, stating the name of the product including its commercial name."
+    },
+    {
+      "num": 2,
+      "section": "General",
+      "text": "Relation declaration between legal manufacturer and any company/ factory involved in any steps of the product manufacturing process, if any"
+    },
+    {
+      "num": 3,
+      "section": "Certificates for the products",
+      "text": "Free Sale certificate issued by the Ministry of Health from the country of origin if it is a reference countries (or a FSC certificate from one of the reference countries if the country of origin is a non-reference country) including the trade name of the medical device and the codes or sizes also contains the legal factory and the actual factory (if any)."
+    },
+    {
+      "num": 4,
+      "section": "Certificates for the products",
+      "text": "CE certificate Full Quality Assurance System Directive 93/42/EEC or EU Regulation 2017/745 of the finished product, with all its components, accessories, and models,that is issued by (a notified body), taking into account the Annex of the specification (Annex) as per the product classification."
+    },
+    {
+      "num": 5,
+      "section": "Certificates for the products",
+      "text": "Notified Body Confirmation Letter (Not applicable for CE MDR)"
+    },
+    {
+      "num": 6,
+      "section": "Certificates for the products",
+      "text": "Manufacturer Self  Declaration (Not applicable for CE MDR)"
+    },
+    {
+      "num": 7,
+      "section": "Certificates for the products",
+      "text": "ISO 13485: 2003 or EN ISO 13485: 2012 the previous publications for the ISO13485 certificate Prior to 2016 will not be accepted."
+    },
+    {
+      "num": 8,
+      "section": "Certificates for the products",
+      "text": "Original declaration of conformity signed and stamped by the legal manufacturer on his letterhead including the commercial name of the product, its codes or sizes - the actual manufacturer name and address – classification - indication of use - manufacturer responsibility - notified body name and number - number of CE certificate issued for the device - kit / set contents in the case of kit / set."
+    },
+    {
+      "num": 9,
+      "section": "The technical file",
+      "text": "Product composition certificate (Raw Material  composition)"
+    },
+    {
+      "num": 10,
+      "section": "The technical file",
+      "text": "Product certificate of analysis and risk analysis, should mention the chemical and physical tests done on the finished product, the applied standard and final results of each test performed."
+    },
+    {
+      "num": 11,
+      "section": "The technical file",
+      "text": "Shelf-Life Certificate is provided by the trade name of the product, intended use and storage conditions."
+    },
+    {
+      "num": 12,
+      "section": "The technical file",
+      "text": "Description of Inner, Outer Label, Master Label sample and insert signed and stamped by the manufacturer and 2 copies of the original artwork for internal and external packaging stamped and signed by the manufacturer."
+    },
+    {
+      "num": 13,
+      "section": "The technical file",
+      "text": "Catalog to describe the product and explain its parts and use in case of need to clarify."
+    },
+    {
+      "num": 14,
+      "section": "The technical file",
+      "text": "IFU of the product original signed and stamped by the manufacturer company. In the case of Electronic labeling, an IFU approved by the foreign manufacturer is provided. The importing company undertakes to place a copy of the IFU with each packaging imported."
+    },
+    {
+      "num": 15,
+      "section": "The technical file",
+      "text": "Certificate of Materials used in Packaging Materials and Number of Units. Should mention number of units per box and carton (if applicable)"
+    },
+    {
+      "num": 16,
+      "section": "The technical file",
+      "text": "Sterilization Certificate"
+    },
+    {
+      "num": 17,
+      "section": "The technical file",
+      "text": "Product sample."
+    }
+  ],
+  "MD Class III Sterile": [
+    {
+      "num": 1,
+      "section": "General",
+      "text": "Letter of authorization to delegate the import company for registration, stating the name of the product including its commercial name ."
+    },
+    {
+      "num": 2,
+      "section": "General",
+      "text": "Relation declaration between legal manufacturer and any company/ factory involved in any steps of the product manufacturing process, if any"
+    },
+    {
+      "num": 3,
+      "section": "Certificates for the products",
+      "text": "Free Sale certificate issued by the Ministry of Health from the country of origin including the trade name of the medical device and the codes or sizes also contains the legal factory and the actual factory (if any)."
+    },
+    {
+      "num": 4,
+      "section": "Certificates for the products",
+      "text": "CE medical device exmination certificate, the CE certificate (Acc.to 93/42 / EC) for the finished product with its complete components, accessories and models issued by notified body, taking into account the annex of the specifications according to the product classification."
+    },
+    {
+      "num": 5,
+      "section": "Certificates for the products",
+      "text": "CE certificate Full Quality Assurance System Directive 93/42/EEC or EU Regulation 2017/745 of the finished product, with all its components, accessories, and models,that is issued by (a notified body), taking into account the Annex of the specification (Annex) as per the product classification."
+    },
+    {
+      "num": 6,
+      "section": "Certificates for the products",
+      "text": "Notified Body Confirmation Letter (Not applicable for CE MDR)"
+    },
+    {
+      "num": 7,
+      "section": "Certificates for the products",
+      "text": "Manufacturer Self  Declaration (Not applicable for CE MDR)"
+    },
+    {
+      "num": 8,
+      "section": "Certificates for the products",
+      "text": "ISO 13485: 2003 or EN ISO 13485: 2012 the previous publications for the ISO13485 certificate Prior to 2016 will not be accepted."
+    },
+    {
+      "num": 9,
+      "section": "Certificates for the products",
+      "text": "Original declaration of conformity signed and stamped by the legal manufacturer on his letterhead including the commercial name of the product, its codes or sizes - the actual manufacturer name and address – classification - indication of use - manufacturer responsibility - notified body name and number - number of CE certificate issued for the device - kit / set contents in the case of kit / set."
+    },
+    {
+      "num": 10,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Product composition certificate (Raw Material  composition) must mention Active and Inactive ingredients."
+    },
+    {
+      "num": 11,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Product certificate of analysis and risk analysis, should mention the chemical and physical tests done on the finished product, the applied standard and final results of each test performed."
+    },
+    {
+      "num": 12,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Shelf-Life Certificate is provided by the trade name of the product, intended use and storage conditions."
+    },
+    {
+      "num": 13,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Inner, Outer Label, Master Label sample and insert signed and stamped by the manufacturer, must mention M.D Codes and 2 copies of the original artwork for internal and external packaging stamped and signed by the manufacturer. Mention (Blister, Tyvek, Paper or Carton Box), Components, units and materials"
+    },
+    {
+      "num": 14,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Catalog to describe the product and explain its parts and use in case of need to clarify."
+    },
+    {
+      "num": 15,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "IFU originally signed and stamped by the manufacturer company. In the case of Electronic labeling, an IFU approved by the foreign manufacturer is provided. The importing company undertakes to place a copy of the IFU with each packaging imported."
+    },
+    {
+      "num": 16,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Certificate of Materials used in Packaging Materials and Number of Units. Should mention number of units per box and carton (if applicable)"
+    },
+    {
+      "num": 17,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Sterilization Certificate"
+    },
+    {
+      "num": 18,
+      "section": "it should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product",
+      "text": "Product sample."
+    }
+  ],
+  "IVD Self-Testing": [
+    {
+      "num": 1,
+      "section": "General",
+      "text": "Letter of authorization to delegate the import company for registration, stating the name of the product including its commercial name."
+    },
+    {
+      "num": 2,
+      "section": "General",
+      "text": "Relation Declaration between legal manufacturer and any company involved in the manufacturing or marketing of the product."
+    },
+    {
+      "num": 3,
+      "section": "Certificates",
+      "text": "DoC with IVD directive and classification."
+    },
+    {
+      "num": 4,
+      "section": "Certificates",
+      "text": "Free sale certificate issued by the origin country or by one of the reference countries."
+    },
+    {
+      "num": 5,
+      "section": "Certificates",
+      "text": "ISO :13485:2016"
+    },
+    {
+      "num": 6,
+      "section": "Certificates",
+      "text": "CE III certificate Or CE IV certificate, Or CE V+VI certificate, Or CE V+VII certificate."
+    },
+    {
+      "num": 3,
+      "section": "Certificates",
+      "text": "CFG without GMP"
+    },
+    {
+      "num": 4,
+      "section": "Certificates",
+      "text": "Declaration of letter with the classification."
+    },
+    {
+      "num": 5,
+      "section": "Certificates",
+      "text": "Code of federal regulation (21 CFR 862, 21 CFR 864,21 CFR 866)"
+    },
+    {
+      "num": 3,
+      "section": "Certificates",
+      "text": "CFG without GMP or CFG + ISO 13485:2016"
+    },
+    {
+      "num": 4,
+      "section": "Certificates",
+      "text": "Declaration of letter with the classification."
+    },
+    {
+      "num": 5,
+      "section": "Certificates",
+      "text": "Code of federal regulation (21 CFR 862, 21 CFR 864,21 CFR 866)"
+    },
+    {
+      "num": 1,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Administration:Name of manufacturer- Address of manufacturer- Address of any associated manufacturing sites - Statement of legal liability (attachment)- License of manufacturing no. (attachment)- Name of authorized person - Authorized person Delegation Letter (attachment)- Name of contact person- Tel- Fax- E- mail- Web address"
+    },
+    {
+      "num": 2,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Device description: Name of the device- Brand name- Variant: codes, references, and sizes- Intended use- Description of individual components included in the IVD Where applicable, the following should also be provided- A description of the accessories, other IVDs and other products that are not medical devices which are intended to be used in combination with the IVD- For assays requiring instrumentation, a description of the relevant instrumentation characteristics or details of dedicated instrumentation to be used- A description of any software to be used- A complete list of any configurations or variants of the IVD, other than kit size, that will be made available."
+    },
+    {
+      "num": 3,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Device History (Transitional State only): A summary of the product history in domestic market and any other countries (attachment)- A list of countries or regulatory jurisdictions, approximate numbers of IVDs and/or period of time supplied, summary of any adverse events, recalls, corrective/preventive actions or refusal to approve for supply (attachment)"
+    },
+    {
+      "num": 4,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Performance evaluation (as statement) - diagnostic sensitivity - diagnostic specificity"
+    },
+    {
+      "num": 5,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Labeling (Inner and outer labels, Instructions for Use, Advertising material (e.g., brochures, web-pages, published advertisements, etc.), where available)"
+    },
+    {
+      "num": 6,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Risk analysis and control summary"
+    },
+    {
+      "num": 7,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Design information (description of the design aspects that make it suitable for lay person use)_x000D_"
+    },
+    {
+      "num": 8,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Manufacturing information"
+    },
+    {
+      "num": 9,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Clinical evidence report (if IVDR applied)"
+    },
+    {
+      "num": 10,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Clinical summary report (if IVDR applied)"
+    },
+    {
+      "num": 11,
+      "section": "( It should be on the legal manufacturer letterhead signed and stamped by the legal manufacturer and contain the commercial/trade name of the product, each letter/certificate for each product shall be separte)",
+      "text": "Product Validation and Verification (shall reflect the following data)"
+    }
+  ],
+  "MD Local with CE Non-Sterile": [
+    {
+      "num": 1,
+      "section": "General",
+      "text": "Medical Device manufacturing license in accordance with the applicable regulations, to include the production line of the medical device intended for registration."
+    },
+    {
+      "num": 2,
+      "section": "General",
+      "text": "The commercial register and tax card must specify the activity of manufacturing medical supplies."
+    },
+    {
+      "num": 3,
+      "section": "General",
+      "text": "Operating license issued by the General Authority for Industrial Development"
+    },
+    {
+      "num": 4,
+      "section": "General",
+      "text": "Factory data certificate issued by the Central Administration for Licensing Pharmaceutical Establishments at the Egyptian Drug Authority."
+    },
+    {
+      "num": 3,
+      "section": "Certificates for the products",
+      "text": "Free Sale certificate issued by the Ministry of Health from the country of origin if it is a reference countries (or a FSC certificate from one of the reference countries if the country of origin is a non-reference country) including the trade name of the medical device and the codes or sizes also contains the legal factory and the actual factory (if any)."
+    },
+    {
+      "num": 4,
+      "section": "Certificates for the products",
+      "text": "Or  CFG certificate issued by the USFDA for the medical device includes the trade name, device codes, and details of the legal manufacturer and actual manufacturer (if applicable). When obtained, this certificate substitutes for the CE certificate and ISO 13485 certificate, if it states that “ plant at that time appeared to be in compliance with current good manufacturing practice requirements.” + 510K FDA Clearance certificate"
+    },
+    {
+      "num": 5,
+      "section": "Certificates for the products",
+      "text": "The CE certificate (Acc.to MDD 93/42/EC) for the finished product with its complete components, accessories and models issued by notified body, taking into account the annex of the specifications according to the product classification. Or CE certificate (Acc. to  Medical Device Regulation (EU) 2017/745) (in case of CFG certificate submitted, no need for CE submission)"
+    },
+    {
+      "num": 6,
+      "section": "Certificates for the products",
+      "text": "Notified Body Confirmation Letter (No need if MDR CE submitted)"
+    },
+    {
+      "num": 7,
+      "section": "Certificates for the products",
+      "text": "Manufacturer Self  Declaration (No need if MDR CE submitted)"
+    },
+    {
+      "num": 8,
+      "section": "Certificates for the products",
+      "text": "ISO 13485: 2003 or EN ISO 13485: 2012 the previous publications for the ISO13485 certificate Prior to 2016 will not be accepted. (No need for it if CFG certificate, stated that “ plant at that time appeared to be in compliance with current good manufacturing practice requirements” submitted)"
+    },
+    {
+      "num": 9,
+      "section": "Certificates for the products",
+      "text": "Original declaration of conformity signed and stamped by the manufacturer on his letterhead including the commercial name of the product, its codes or sizes - the legal and actual manufacturer name and address – classification - indication of use - manufacturer responsibility - notified body name and number - number of CE certificate issued for the device - kit / set contents in the case of kit / set."
+    },
+    {
+      "num": 10,
+      "section": "The technical file",
+      "text": "Product composition certificate (Raw Material  composition), List of PVC codes& grade."
+    },
+    {
+      "num": 11,
+      "section": "The technical file",
+      "text": "Sketch Diagram."
+    },
+    {
+      "num": 12,
+      "section": "The technical file",
+      "text": "Product certificate of analysis should mention the physical-chemical-biological tests done on the finished product, the applied standard and final results of each test performed."
+    },
+    {
+      "num": 13,
+      "section": "The technical file",
+      "text": "Stability/ Biocompatibility study (No need in case of the MD is marketed in the reference countries)"
+    },
+    {
+      "num": 14,
+      "section": "The technical file",
+      "text": "Shelf-Life Certificate is provided by the trade name of the product, intended use and storage conditions."
+    },
+    {
+      "num": 15,
+      "section": "The technical file",
+      "text": "Description of Inner, Outer Label, Master Label sample and insert signed and stamped by the manufacturer and 2 copies of the original artwork for internal and external packaging stamped and signed by the manufacturer."
+    },
+    {
+      "num": 16,
+      "section": "The technical file",
+      "text": "Catalog to describe the product and explain its parts and use in case of need to clarify."
+    },
+    {
+      "num": 17,
+      "section": "The technical file",
+      "text": "IFU of the product original signed and stamped by the manufacturer company. In the case of Electronic labeling, an IFU approved by the foreign manufacturer is provided. The importing company undertakes to place a copy of the IFU with each packaging imported."
+    },
+    {
+      "num": 18,
+      "section": "The technical file",
+      "text": "Certificate of Materials used in Packaging Materials and Number of Units. Should mention number of units per box and carton"
+    },
+    {
+      "num": 19,
+      "section": "The technical file",
+      "text": "Sterilization Certificate (in case of non sterile MD,  it should state the product is “non sterile”"
+    },
+    {
+      "num": 20,
+      "section": "The technical file",
+      "text": "Approved Supplier List"
+    },
+    {
+      "num": 21,
+      "section": "The technical file",
+      "text": "A letter from the manufacturer, signed and stamped, clarifying the steps undertaken by the manufacturer in producing the medical supplies submitted for registration."
+    },
+    {
+      "num": 22,
+      "section": "The technical file",
+      "text": "A report from the Central Administration for Pharmaceutical Inspection, confirming the availability of the production line and that no violations exist which conflict with good manufacturing practice requirements (to be obtained through correspondence with the Central Administration for Pharmaceutical Inspection)."
+    },
+    {
+      "num": 23,
+      "section": "The technical file",
+      "text": "Product sample"
+    }
+  ]
+};
+
+const ITEM_STATUSES = {
+  'approved':   { label: 'Approved',        icon: '✅', color: 'var(--green)',   bg: 'var(--green-light)' },
+  'followup':   { label: 'Needs Follow-up', icon: '⚠️', color: 'var(--gold)',    bg: 'var(--gold-light)' },
+  'missing':    { label: 'Missing',         icon: '❌', color: 'var(--accent)',  bg: 'var(--accent-light)' },
+  'pending':    { label: 'Pending Review',  icon: '🔄', color: 'var(--blue)',    bg: 'var(--blue-light)' },
+  'na':         { label: 'N/A',             icon: '—',  color: 'var(--text-muted)', bg: 'var(--surface2)' },
+};
+
+const OUTCOME_MAP = {
+  'proceed': { label: 'Proceed to Registration',            icon: '✅', color: 'var(--green)',  bg: 'var(--green-light)' },
+  'resolve': { label: 'Need to Resolve Issues',             icon: '⚠️', color: 'var(--gold)',   bg: 'var(--gold-light)' },
+  'reject':  { label: 'Reject — Not Viable',                icon: '❌', color: 'var(--accent)', bg: 'var(--accent-light)' },
+  'hold':    { label: 'On Hold',                            icon: '🔄', color: 'var(--blue)',   bg: 'var(--blue-light)' },
+};
+
+const mA = r => ({
+  id: r.id, product: r.product||'', type: r.type||'',
+  assessor: r.assessor||'', date: r.date||'',
+  subLink: r.sub_link||'', prodLink: r.prod_link||'',
+  outcome: r.outcome||'', notes: r.notes||'',
+  items: r.items||{},
+  createdBy: r.created_by||'', createdAt: r.created_at_user||r.created_at||''
+});
+
+async function loadAssessments(){
+  const {data,error} = await db.from('assessments').select('*').order('created_at',{ascending:false});
+  if(!error) assessments = (data||[]).map(mA);
+}
+
+function renderAssessments(){
+  const tb = document.getElementById('assessments-tbody');
+  const em = document.getElementById('assessments-empty');
+  const cnt = document.getElementById('assessments-panel-count');
+  if(!tb) return;
+  const q = (document.getElementById('assessments-search')?.value||'').toLowerCase().trim();
+  let f = [...assessments];
+  if(q) f = f.filter(a=>[a.product,a.type,a.assessor,a.outcome,a.notes].some(v=>(v||'').toLowerCase().includes(q)));
+  cnt.textContent = f.length+' assessment'+(f.length!==1?'s':'');
+  if(!f.length){ tb.innerHTML=''; em.style.display='block'; return; }
+  em.style.display='none';
+  tb.innerHTML = f.map(a=>{
+    const ls = submissions.find(s=>s.id===a.subLink);
+    const checklist = ASSESSMENT_CHECKLISTS[a.type]||[];
+    const total = checklist.length;
+    const reviewed = Object.values(a.items||{}).filter(v=>v.status && v.status!=='pending').length;
+    const approved = Object.values(a.items||{}).filter(v=>v.status==='approved').length;
+    const missing = Object.values(a.items||{}).filter(v=>v.status==='missing').length;
+    const followup = Object.values(a.items||{}).filter(v=>v.status==='followup').length;
+    const pct = total ? Math.round(reviewed/total*100) : 0;
+    const outcome = a.outcome ? OUTCOME_MAP[a.outcome] : null;
+    return `<tr onclick="openAssessmentDetail('${a.id}')" style="cursor:pointer;">
+      <td><div style="font-weight:500;">${a.product}</div><div style="font-size:11px;color:var(--text-muted);">${a.type}</div></td>
+      <td><span class="type-pill" style="font-size:10px;">${a.type}</span></td>
+      <td>${a.assessor?`<div class="assignee"><div class="avatar" style="background:${aColor(a.assessor)};width:22px;height:22px;font-size:9px;">${ini(a.assessor)}</div><span style="font-size:12px;">${a.assessor}</span></div>`:'—'}</td>
+      <td style="font-size:12.5px;color:var(--text-muted);">${fmt(a.date)||'—'}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:80px;background:var(--border);border-radius:20px;height:5px;overflow:hidden;"><div style="width:${pct}%;height:5px;background:${pct===100?'var(--green)':pct>50?'var(--teal)':'var(--gold)'};border-radius:20px;"></div></div>
+          <span style="font-size:11px;color:var(--text-muted);">${reviewed}/${total}</span>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+          ${approved?`<span style="font-size:10px;background:var(--green-light);color:var(--green);border-radius:20px;padding:1px 6px;">✅ ${approved}</span>`:''}
+          ${missing?`<span style="font-size:10px;background:var(--accent-light);color:var(--accent);border-radius:20px;padding:1px 6px;">❌ ${missing}</span>`:''}
+          ${followup?`<span style="font-size:10px;background:var(--gold-light);color:var(--gold);border-radius:20px;padding:1px 6px;">⚠️ ${followup}</span>`:''}
+        </div>
+      </td>
+      <td>${outcome?`<span style="background:${outcome.bg};color:${outcome.color};border-radius:20px;padding:2px 8px;font-size:11px;font-weight:500;">${outcome.icon} ${outcome.label}</span>`:'<span style="color:var(--text-muted);font-size:12px;">Pending</span>'}</td>
+      <td style="font-size:12px;">${ls?`<span style="font-family:'DM Mono',monospace;">${ls.id}</span>`:'—'}</td>
+      <td><div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openAssessmentDetail('${a.id}')">Open</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="event.stopPropagation();deleteAssessment('${a.id}')">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openAssessmentModal(id){
+  document.getElementById('assessment-modal-title').textContent = id ? 'Edit Assessment' : 'New Assessment';
+  document.getElementById('assessment-edit-id').value = id||'';
+  // Populate selects
+  document.getElementById('assessment-product-list').innerHTML = products.map(p=>`<option value="${p.name}">`).join('');
+  document.getElementById('assessment-assessor').innerHTML = '<option value="">— Select —</option>'+appUsers.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  document.getElementById('assessment-sub-link').innerHTML = '<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  document.getElementById('assessment-prod-link').innerHTML = '<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  if(id){
+    const a = assessments.find(a=>a.id===id);
+    document.getElementById('assessment-product').value = a.product;
+    document.getElementById('assessment-type').value = a.type;
+    document.getElementById('assessment-assessor').value = a.assessor;
+    document.getElementById('assessment-date').value = a.date;
+    document.getElementById('assessment-sub-link').value = a.subLink;
+    document.getElementById('assessment-prod-link').value = a.prodLink;
+    document.getElementById('assessment-outcome').value = a.outcome;
+    document.getElementById('assessment-notes').value = a.notes;
+  } else {
+    ['assessment-product','assessment-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('assessment-type').value = '';
+    document.getElementById('assessment-assessor').value = getSession()?.name||'';
+    document.getElementById('assessment-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('assessment-sub-link').value = '';
+    document.getElementById('assessment-prod-link').value = '';
+    document.getElementById('assessment-outcome').value = '';
+  }
+  document.getElementById('assessment-modal').classList.add('open');
+}
+
+async function saveAssessment(){
+  const product = document.getElementById('assessment-product').value.trim();
+  const type = document.getElementById('assessment-type').value;
+  if(!product||!type){ alert('Product name and checklist type are required.'); return; }
+  const btn = document.getElementById('assessment-save-btn'); btn.disabled=true; btn.textContent='Saving...'; setSyncStatus('syncing');
+  const editId = document.getElementById('assessment-edit-id').value;
+  const id = editId||uid();
+  const session = getSession();
+  // Initialize items from checklist if new
+  let items = {};
+  if(editId){
+    const existing = assessments.find(a=>a.id===editId);
+    items = existing?.items||{};
+  } else {
+    const checklist = ASSESSMENT_CHECKLISTS[type]||[];
+    checklist.forEach((item,idx)=>{ items[idx] = {status:'pending', note:''}; });
+  }
+  const row = {
+    id, product, type,
+    assessor: document.getElementById('assessment-assessor').value||null,
+    date: document.getElementById('assessment-date').value||null,
+    sub_link: document.getElementById('assessment-sub-link').value||null,
+    prod_link: document.getElementById('assessment-prod-link').value||null,
+    outcome: document.getElementById('assessment-outcome').value||null,
+    notes: document.getElementById('assessment-notes').value.trim(),
+    items,
+    ...(!editId&&{created_by:session?.name||'Unknown', created_at_user:new Date().toISOString()})
+  };
+  const {error} = editId ? await db.from('assessments').update(row).eq('id',editId) : await db.from('assessments').insert(row);
+  btn.disabled=false; btn.textContent='Save & Open Checklist';
+  if(error){ showToast('❌','Save failed: '+error.message); setSyncStatus('online'); return; }
+  showToast('✓', editId?'Assessment updated':'Assessment created');
+  await loadAssessments(); renderAssessments(); closeModal('assessment-modal'); setSyncStatus('online');
+  // Open the checklist panel
+  setTimeout(()=>openAssessmentDetail(id), 200);
+}
+
+async function deleteAssessment(id){
+  if(!canDelete()){ showToast('⚠️','Only admins can delete.'); return; }
+  if(!confirm('Delete this assessment?')) return;
+  await db.from('assessments').delete().eq('id',id);
+  await loadAssessments(); renderAssessments(); showToast('🗑','Assessment deleted');
+}
+
+function openAssessmentDetail(id){
+  const a = assessments.find(a=>a.id===id);
+  if(!a) return;
+  currentAssessmentId = id;
+  document.getElementById('acp-title').textContent = a.product + ' — ' + a.type;
+  document.getElementById('acp-meta').textContent = [
+    a.assessor ? '👤 ' + a.assessor : '',
+    a.date ? '📅 ' + fmt(a.date) : '',
+    submissions.find(s=>s.id===a.subLink) ? '📋 ' + a.subLink : ''
+  ].filter(Boolean).join('  ·  ');
+  document.getElementById('acp-outcome').value = a.outcome||'';
+  renderAssessmentChecklist(a);
+  const overlay = document.getElementById('assessment-detail-overlay');
+  const panel = document.getElementById('assessment-detail-panel');
+  overlay.style.display = 'block';
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+}
+
+function renderAssessmentChecklist(a){
+  const checklist = ASSESSMENT_CHECKLISTS[a.type]||[];
+  const items = a.items||{};
+  // Progress
+  const reviewed = Object.values(items).filter(v=>v.status && v.status!=='pending').length;
+  const total = checklist.length;
+  const pct = total ? Math.round(reviewed/total*100) : 0;
+  document.getElementById('acp-progress-bar').style.width = pct+'%';
+  document.getElementById('acp-progress-text').textContent = reviewed+' / '+total+' reviewed';
+  // Summary chips
+  const approved = Object.values(items).filter(v=>v.status==='approved').length;
+  const missing = Object.values(items).filter(v=>v.status==='missing').length;
+  const followup = Object.values(items).filter(v=>v.status==='followup').length;
+  const na = Object.values(items).filter(v=>v.status==='na').length;
+  document.getElementById('acp-summary-chips').innerHTML = [
+    approved ? `<span style="background:var(--green-light);color:var(--green);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">✅ ${approved} Approved</span>` : '',
+    missing ? `<span style="background:var(--accent-light);color:var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">❌ ${missing} Missing</span>` : '',
+    followup ? `<span style="background:var(--gold-light);color:var(--gold);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">⚠️ ${followup} Follow-up</span>` : '',
+    na ? `<span style="background:var(--surface2);color:var(--text-muted);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">— ${na} N/A</span>` : '',
+    `<span style="background:var(--blue-light);color:var(--blue);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">🔄 ${total-reviewed} Pending</span>`
+  ].filter(Boolean).join('');
+  // Group by section
+  const sections = {};
+  checklist.forEach((item, idx)=>{
+    const sec = item.section||'General';
+    if(!sections[sec]) sections[sec] = [];
+    sections[sec].push({...item, idx});
+  });
+  let html = '';
+  for(const [sec, secItems] of Object.entries(sections)){
+    html += `<div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);">${sec}</div>`;
+    secItems.forEach(item=>{
+      const st = items[item.idx]||{status:'pending',note:''};
+      const stInfo = ITEM_STATUSES[st.status]||ITEM_STATUSES['pending'];
+      html += `<div style="background:var(--surface);border:1.5px solid ${st.status==='approved'?'var(--green)':st.status==='missing'?'var(--accent)':st.status==='followup'?'var(--gold)':st.status==='na'?'var(--border)':'var(--border)'};border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);flex-shrink:0;margin-top:2px;">${item.num}.</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;line-height:1.6;margin-bottom:10px;">${item.text}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              ${Object.entries(ITEM_STATUSES).map(([key,val])=>`<button onclick="setItemStatus('${item.idx}','${key}')" style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid ${st.status===key?val.color:'var(--border)'};background:${st.status===key?val.bg:'transparent'};color:${st.status===key?val.color:'var(--text-muted)'};">${val.icon} ${val.label}</button>`).join('')}
+            </div>
+            <input type="text" placeholder="Add note..." value="${(st.note||'').replace(/"/g,'&quot;')}" onchange="setItemNote('${item.idx}',this.value)" style="width:100%;padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface2);">
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+  document.getElementById('acp-checklist').innerHTML = html;
+}
+
+async function setItemStatus(idx, status){
+  const a = assessments.find(a=>a.id===currentAssessmentId);
+  if(!a) return;
+  if(!a.items[idx]) a.items[idx] = {status:'pending', note:''};
+  a.items[idx].status = status;
+  // Save to DB
+  await db.from('assessments').update({items: a.items}).eq('id', currentAssessmentId);
+  renderAssessmentChecklist(a);
+  renderAssessments();
+}
+
+async function setItemNote(idx, note){
+  const a = assessments.find(a=>a.id===currentAssessmentId);
+  if(!a) return;
+  if(!a.items[idx]) a.items[idx] = {status:'pending', note:''};
+  a.items[idx].note = note;
+  await db.from('assessments').update({items: a.items}).eq('id', currentAssessmentId);
+}
+
+async function saveAssessmentOutcome(){
+  const outcome = document.getElementById('acp-outcome').value;
+  await db.from('assessments').update({outcome}).eq('id', currentAssessmentId);
+  const a = assessments.find(a=>a.id===currentAssessmentId);
+  if(a) a.outcome = outcome;
+  renderAssessments();
+  showToast('✓', 'Outcome saved');
+}
+
+function closeAssessmentDetail(){
+  document.getElementById('assessment-detail-overlay').style.display='none';
+  document.getElementById('assessment-detail-panel').style.display='none';
+  currentAssessmentId = null;
+}
+
 // ── COMMUNICATIONS LOG ────────────────────────────────────────────────────────
 let comms = [];
 
@@ -2212,12 +3161,13 @@ function renderAuditLog(){
   projects.forEach(p=>{ if(p.createdBy) entries.push({type:'project',label:p.name,createdBy:p.createdBy,createdAt:p.createdAt}); });
   workflows.forEach(w=>{ if(w.createdBy) entries.push({type:'workflow',label:w.title,createdBy:w.createdBy,createdAt:w.createdAt}); });
   contracts.forEach(c=>{ if(c.createdBy) entries.push({type:'contract',label:c.name,createdBy:c.createdBy,createdAt:c.createdAt}); });
+  assessments.forEach(a=>{ if(a.createdBy) entries.push({type:'assessment',label:a.product+' — '+a.type,createdBy:a.createdBy,createdAt:a.createdAt}); });
 
   if(ftype) entries = entries.filter(e=>e.type===ftype);
   entries.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
 
-  const typeColors = {task:'var(--blue)',submission:'var(--teal)',product:'var(--gold)',project:'var(--purple)',workflow:'var(--orange)',contract:'var(--green)'};
-  const typeLabels = {task:'Task',submission:'Submission',product:'Product',project:'Project',workflow:'Workflow',contract:'Contract'};
+  const typeColors = {task:'var(--blue)',submission:'var(--teal)',product:'var(--gold)',project:'var(--purple)',workflow:'var(--orange)',contract:'var(--green)',assessment:'#1a6b5e'};
+  const typeLabels = {task:'Task',submission:'Submission',product:'Product',project:'Project',workflow:'Workflow',contract:'Contract',assessment:'Assessment'};
 
   const tbody = document.getElementById('audit-tbody');
   const empty = document.getElementById('audit-empty');
@@ -2494,6 +3444,44 @@ function renderKPI(){
   );
 
 
+
+  // ── ASSESSMENTS ──
+  const totalA = assessments.length;
+  const proceedA = assessments.filter(a=>a.outcome==='proceed').length;
+  const resolveA = assessments.filter(a=>a.outcome==='resolve').length;
+  const rejectA = assessments.filter(a=>a.outcome==='reject').length;
+  const pendingA = assessments.filter(a=>!a.outcome).length;
+  // Count all doc statuses across all assessments
+  let allApproved=0, allMissing=0, allFollowup=0, allNA=0, allPending=0;
+  assessments.forEach(a=>{
+    Object.values(a.items||{}).forEach(item=>{
+      if(item.status==='approved') allApproved++;
+      else if(item.status==='missing') allMissing++;
+      else if(item.status==='followup') allFollowup++;
+      else if(item.status==='na') allNA++;
+      else allPending++;
+    });
+  });
+  const totalDocs = allApproved+allMissing+allFollowup+allNA+allPending;
+  const docApprovalRate = totalDocs ? Math.round(allApproved/totalDocs*100) : 0;
+
+  document.getElementById('kpi-assess-row').innerHTML =
+    kpiStatCard(totalA,'Total Assessments','All time','#1e3a8a') +
+    kpiStatCard(proceedA,'Proceed to Registration','','#2d6a2d') +
+    kpiStatCard(rejectA+resolveA,'Issues Found',rejectA+' rejected, '+resolveA+' need resolution',rejectA>0?'#c0392b':'#b8860b') +
+    kpiStatCard(docApprovalRate+'%','Doc Approval Rate',allApproved+' of '+totalDocs+' docs','#1a6b5e');
+
+  makeDonut('kpi-assess-outcome-chart',
+    ['Proceed','Resolve Issues','Reject','On Hold','Pending'],
+    [proceedA, resolveA, rejectA, assessments.filter(a=>a.outcome==='hold').length, pendingA],
+    ['#2d6a2d','#b8860b','#c0392b','#1e3a8a','#7a7368']
+  );
+  makeDonut('kpi-assess-docs-chart',
+    ['Approved','Needs Follow-up','Missing','N/A','Pending'],
+    [allApproved, allFollowup, allMissing, allNA, allPending],
+    ['#2d6a2d','#b8860b','#c0392b','#7a7368','#1e3a8a']
+  );
+
   // ── PERFORMANCE ──
   const members = [...new Set(comms.map(c=>c.loggedBy).filter(Boolean))];
   const totalComms = comms.length;
@@ -2738,6 +3726,25 @@ function renderReport(){
     rows=data.map(c=>{
       const st=commStatus(c);
       return `<tr><td>${fmt(c.date)}</td><td>${c.direction==='sent'?'Sent':'Received'}</td><td>${c.channel}</td><td>${c.party}</td><td>${c.subject}</td><td>${c.loggedBy||'—'}</td><td>${fmt(c.deadline)||'—'}</td><td>${fmt(c.responseDate)||'—'}</td><td>${st.label}</td></tr>`;
+    });
+  }
+
+  else if(f.type==='assessments'){
+    let data=[...assessments];
+    if(f.from) data=data.filter(a=>a.date&&a.date>=f.from);
+    if(f.to) data=data.filter(a=>a.date&&a.date<=f.to);
+    count=data.length;
+    const proceed=data.filter(a=>a.outcome==='proceed').length;
+    const resolve=data.filter(a=>a.outcome==='resolve').length;
+    const reject=data.filter(a=>a.outcome==='reject').length;
+    summary=statBox(data.length,'Total','var(--blue)')+statBox(proceed,'Proceed','var(--green)')+statBox(resolve,'Resolve Issues','var(--gold)')+statBox(reject,'Rejected','var(--accent)');
+    thead=`<tr><th>Product</th><th>Type</th><th>Assessor</th><th>Date</th><th>Approved</th><th>Missing</th><th>Follow-up</th><th>Outcome</th></tr>`;
+    rows=data.map(a=>{
+      const approved=Object.values(a.items||{}).filter(v=>v.status==='approved').length;
+      const missing=Object.values(a.items||{}).filter(v=>v.status==='missing').length;
+      const followup=Object.values(a.items||{}).filter(v=>v.status==='followup').length;
+      const oc=a.outcome?OUTCOME_MAP[a.outcome]:null;
+      return `<tr><td style="font-weight:500;">${a.product}</td><td>${a.type}</td><td>${a.assessor||'—'}</td><td>${fmt(a.date)||'—'}</td><td style="color:var(--green);font-family:'DM Mono',monospace;">${approved}</td><td style="color:var(--accent);font-family:'DM Mono',monospace;">${missing}</td><td style="color:var(--gold);font-family:'DM Mono',monospace;">${followup}</td><td>${oc?oc.icon+' '+oc.label:'Pending'}</td></tr>`;
     });
   }
   document.getElementById('rpt-summary').innerHTML=summary;
