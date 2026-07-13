@@ -613,7 +613,7 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Contract Name</th><th>Type</th><th>Parties</th><th>Status</th><th>Effective Date</th><th>Expiry Date</th><th>Responsible</th><th>Files</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Contract Name</th><th>Type</th><th>Parties</th><th>Status</th><th>Effective Date</th><th>Expiry Date</th><th>Auto-Renewal</th><th>Notice Period</th><th>Responsible</th><th>Files</th><th>Actions</th></tr></thead>
               <tbody id="contracts-tbody"></tbody>
             </table>
             <div id="contracts-empty" class="empty-state" style="display:none;"><div class="empty-icon">📄</div><h3>No contracts yet</h3><p>Click "+ Add New" to log your first contract.</p></div>
@@ -3202,6 +3202,8 @@ function renderContracts(){
       <td>${cStatusBadge(c.status)}</td>
       <td style="font-size:12.5px;color:var(--text-muted);">${fmt(c.effectiveDate)||'—'}</td>
       <td style="font-size:12.5px;${expiring?'color:var(--orange);font-weight:600;':expired?'color:var(--accent);':''}">${fmt(c.expiryDate)||'—'}${expiring?' ⚠️':''}${expired&&c.status!=='terminated'?' ❌':''}</td>
+      <td>${c.autoRenewal?'<span style="background:var(--teal-light);color:var(--teal);border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:500;">🔄 Yes</span>':'<span style="color:var(--text-muted);font-size:12px;">No</span>'}</td>
+      <td style="font-size:12.5px;color:var(--text-muted);">${c.noticePeriod||'—'}</td>
       <td>${c.responsible?`<div class="assignee"><div class="avatar" style="background:${aColor(c.responsible)};width:22px;height:22px;font-size:9px;">${ini(c.responsible)}</div><span>${c.responsible}</span></div>`:'—'}</td>
       <td style="font-size:12px;">${c.files.length?`📎 ${c.files.length} file${c.files.length!==1?'s':''}`:'—'}</td>
       <td><div style="display:flex;gap:6px;">
