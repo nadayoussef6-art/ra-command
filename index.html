@@ -1119,6 +1119,7 @@
     <div class="modal-body">
       <input type="hidden" id="sub-edit-id">
       <div class="form-row">
+        <div class="form-group full"><label>Submission Title</label><input type="text" id="sub-title" placeholder="e.g. Orabloc Dental Needle — Initial Registration 2026"></div>
         <div class="form-group"><label>Submission ID *</label><input type="text" id="sub-id-field" placeholder="e.g. SUB-2024-001"></div>
         <div class="form-group"><label>Type</label><select id="sub-type">
   <option>New Registration</option>
@@ -1308,7 +1309,7 @@ function setSyncStatus(s){const dot=document.getElementById('sync-dot'),lbl=docu
 // ── MAPPERS ──────────────────────────────────────────────────────────────────
 const mT=r=>({id:r.id,title:r.title,desc:r.description||'',priority:r.priority||'medium',status:r.status||'open',assignee:r.assignee||'',due:r.due_date||'',subLink:r.sub_link||'',prodLink:r.prod_link||'',projLink:r.proj_link||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 const mPrj=r=>({id:r.id,name:r.name,status:r.status||'active',responsible:r.responsible||'',prodLink:r.prod_link||'',subLink:r.sub_link||'',desc:r.description||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
-const mS=r=>({id:r.id,product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',category:r.category||'',classification:r.classification||'',ballInCourt:r.ball_in_court||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
+const mS=r=>({id:r.id,title:r.title||'',product:r.product||'',type:r.type||'New Registration',agency:r.agency||'EDA',status:r.status||'preparation',date:r.sub_date||'',pdufa:r.pdufa_date||'',lead:r.lead||'',projLink:r.proj_link||'',category:r.category||'',classification:r.classification||'',ballInCourt:r.ball_in_court||'',notes:r.notes||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 const mP=r=>({id:r.id,name:r.name,internalId:r.internal_id||'',category:r.category||'',classification:r.classification||'',ta:r.therapeutic_area||'',phase:r.phase||'',owner:r.owner||'',regStatus:r.reg_status||'',regNo:r.reg_no||'',renewalDate:r.renewal_date||'',country:r.country||'',refType:r.ref_type||'',desc:r.description||'',createdBy:r.created_by||'',createdAt:r.created_at_user||r.created_at||''});
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────
@@ -1393,7 +1394,7 @@ function renderDashboard(){
   document.getElementById('stat-due-month').textContent=dm.length;
 
   const up=[...open.filter(t=>t.due).map(t=>({label:t.title,sub:'Task · '+(t.assignee||'Unassigned'),date:t.due})),
-            ...submissions.filter(s=>s.pdufa).map(s=>({label:s.id+' — '+s.product,sub:s.type+' Target',date:s.pdufa}))]
+            ...submissions.filter(s=>s.pdufa&&s.status!=='approved'&&s.status!=='withdrawn').map(s=>({label:s.id+' — '+s.product,sub:s.type+' Target',date:s.pdufa}))]
     .sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,6);
   const ul=document.getElementById('upcoming-list');
   ul.innerHTML=up.length?up.map(u=>{const d=new Date(u.date);const mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];const cls=dueCls(u.date);const ov=cls==='due-overdue';return `<div class="upcoming-item"><div class="upcoming-date-box" style="${ov?'background:var(--accent-light);color:var(--accent)':''}"><div class="day">${d.getDate()}</div><div class="mon">${mon}</div></div><div class="upcoming-info"><div class="upcoming-title">${u.label}</div><div class="upcoming-sub">${u.sub}</div></div><span class="due-date ${cls}" style="font-size:11px;">${ov?'OVERDUE':(cls==='due-soon'?'SOON':fmt(u.date))}</span></div>`;}).join(''):`<div class="empty-state"><div class="empty-icon">📅</div><h3>No upcoming deadlines</h3></div>`;
@@ -1402,7 +1403,7 @@ function renderDashboard(){
   if(ov.length)acts.push({icon:'🔴',title:ov.length+' overdue task'+(ov.length>1?'s':''),sub:ov.map(t=>t.title).slice(0,2).join(', ')});
   const hi=open.filter(t=>t.priority==='high');
   if(hi.length)acts.push({icon:'⚡',title:hi.length+' high-priority task'+(hi.length>1?'s':'')+' open',sub:hi.map(t=>t.title).slice(0,2).join(', ')});
-  review.forEach(s=>{if(s.pdufa){const diff=(new Date(s.pdufa)-now)/86400000;if(diff<=30)acts.push({icon:'📋',title:s.id+' target date in '+Math.max(0,Math.ceil(diff))+' days',sub:s.product+' · '+s.type});}});
+  submissions.filter(s=>s.status!=='approved'&&s.status!=='withdrawn'&&s.pdufa).forEach(s=>{const diff=(new Date(s.pdufa)-now)/86400000;if(diff<=30)acts.push({icon:'📋',title:s.id+' target date in '+Math.max(0,Math.ceil(diff))+' days',sub:s.product+' · '+s.type});});
   products.forEach(p=>{if(p.renewalDate){const diff=(new Date(p.renewalDate)-now)/86400000;if(diff<=60&&diff>=0)acts.push({icon:'🔖',title:p.name+' renewal due in '+Math.ceil(diff)+' days',sub:'Reg: '+(p.regNo||'N/A')});if(diff<0)acts.push({icon:'🚨',title:p.name+' registration EXPIRED',sub:'Was due '+fmt(p.renewalDate)});}});
   // Priority items due soon
   const now2=new Date();now2.setHours(0,0,0,0);
@@ -1462,7 +1463,7 @@ function renderSubmissions(){
   const tb=document.getElementById('subs-tbody'),em=document.getElementById('subs-empty');
   document.getElementById('sub-panel-count').textContent=submissions.length+' submission'+(submissions.length!==1?'s':'');
   if(!f.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';
-  tb.innerHTML=f.map(s=>`<tr onclick="openSubDetail('${s.id}')" style="cursor:pointer;"><td><span style="font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;">${s.id}</span></td><td><span style="font-weight:500;">${s.product}</span></td><td><span class="type-pill">${s.type}</span></td><td>${sBadge(s.status)}</td><td>${s.ballInCourt?`<span style="background:var(--gold-light);color:var(--gold);border-radius:20px;padding:2px 8px;font-size:11px;">🎯 ${s.ballInCourt}</span>`:'—'}</td><td><span class="due-date due-ok">${fmt(s.date)}</span></td><td><span class="due-date ${dueCls(s.pdufa)}">${fmt(s.pdufa)}</span></td><td><div class="assignee">${s.lead?`<div class="avatar" style="background:${aColor(s.lead)};width:22px;height:22px;font-size:9px;">${ini(s.lead)}</div><span>${s.lead}</span>`:'<span style="color:var(--text-muted)">—</span>'}</div></td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editSub('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="event.stopPropagation();deleteSub('${s.id}')">Del</button></div></td></tr>`).join('');
+  tb.innerHTML=f.map(s=>`<tr onclick="openSubDetail('${s.id}')" style="cursor:pointer;"><td><span style="font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;">${s.id}</span>${s.title?`<div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${s.title}</div>`:''}</td><td><span style="font-weight:500;">${s.product}</span></td><td><span class="type-pill">${s.type}</span></td><td>${sBadge(s.status)}</td><td>${s.ballInCourt?`<span style="background:var(--gold-light);color:var(--gold);border-radius:20px;padding:2px 8px;font-size:11px;">🎯 ${s.ballInCourt}</span>`:'—'}</td><td><span class="due-date due-ok">${fmt(s.date)}</span></td><td><span class="due-date ${dueCls(s.pdufa)}">${fmt(s.pdufa)}</span></td><td><div class="assignee">${s.lead?`<div class="avatar" style="background:${aColor(s.lead)};width:22px;height:22px;font-size:9px;">${ini(s.lead)}</div><span>${s.lead}</span>`:'<span style="color:var(--text-muted)">—</span>'}</div></td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editSub('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="event.stopPropagation();deleteSub('${s.id}')">Del</button></div></td></tr>`).join('');
 }
 
 function populateProdFilterDropdowns(){
@@ -1535,8 +1536,8 @@ function openSubModal(id){
   populateProjSelects();
   document.getElementById('sub-modal-title').textContent=id?'Edit Submission':'New Submission';
   document.getElementById('sub-edit-id').value=id||'';
-  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-ball-in-court').value=s.ballInCourt||'';document.getElementById('sub-proj-link').value=s.projLink||'';document.getElementById('sub-category').value=s.category||'';updateSubClassification();document.getElementById('sub-classification').value=s.classification||'';document.getElementById('sub-notes').value=s.notes||'';}
-  else{['sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';document.getElementById('sub-ball-in-court').value='';document.getElementById('sub-proj-link').value='';document.getElementById('sub-category').value='';document.getElementById('sub-classification').value='';}
+  if(id){const s=submissions.find(s=>s.id===id);document.getElementById('sub-title').value=s.title||'';document.getElementById('sub-id-field').value=s.id;document.getElementById('sub-type').value=s.type;document.getElementById('sub-product').value=s.product;document.getElementById('sub-status').value=s.status;document.getElementById('sub-date').value=s.date;document.getElementById('sub-pdufa').value=s.pdufa||'';document.getElementById('sub-lead').value=s.lead||'';document.getElementById('sub-ball-in-court').value=s.ballInCourt||'';document.getElementById('sub-proj-link').value=s.projLink||'';document.getElementById('sub-category').value=s.category||'';updateSubClassification();document.getElementById('sub-classification').value=s.classification||'';document.getElementById('sub-notes').value=s.notes||'';}
+  else{['sub-title','sub-id-field','sub-product','sub-date','sub-pdufa','sub-lead','sub-notes'].forEach(f=>document.getElementById(f).value='');document.getElementById('sub-type').value='New Registration';document.getElementById('sub-status').value='preparation';document.getElementById('sub-ball-in-court').value='';document.getElementById('sub-proj-link').value='';document.getElementById('sub-category').value='';document.getElementById('sub-classification').value='';}
   document.getElementById('sub-modal').classList.add('open');
 }
 async function saveSubmission(){
@@ -1545,7 +1546,7 @@ async function saveSubmission(){
   const btn=document.getElementById('sub-save-btn');btn.disabled=true;btn.textContent='Saving…';setSyncStatus('syncing');
   const editId=document.getElementById('sub-edit-id').value;
   const _ssession=getSession();
-  const row={id:subId,product,type:document.getElementById('sub-type').value,category:document.getElementById('sub-category').value||null,classification:document.getElementById('sub-classification').value||null,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),ball_in_court:document.getElementById('sub-ball-in-court').value||null,proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim(),...(!editId&&{created_by:_ssession?.name||'Unknown',created_at_user:new Date().toISOString()})};
+  const row={id:subId,title:document.getElementById('sub-title').value.trim(),product,type:document.getElementById('sub-type').value,category:document.getElementById('sub-category').value||null,classification:document.getElementById('sub-classification').value||null,status:document.getElementById('sub-status').value,sub_date:document.getElementById('sub-date').value||null,pdufa_date:document.getElementById('sub-pdufa').value||null,lead:document.getElementById('sub-lead').value.trim(),ball_in_court:document.getElementById('sub-ball-in-court').value||null,proj_link:document.getElementById('sub-proj-link').value||null,notes:document.getElementById('sub-notes').value.trim(),...(!editId&&{created_by:_ssession?.name||'Unknown',created_at_user:new Date().toISOString()})};
   const{error}=editId?await db.from('submissions').update(row).eq('id',editId):await db.from('submissions').insert(row);
   btn.disabled=false;btn.textContent='Save Submission';
   if(error){showToast('❌','Save failed: '+error.message);setSyncStatus('online');return;}
@@ -3553,7 +3554,7 @@ function openSubDetail(id){
       <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
     </div>
     <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-      <div><div class="detail-label">Product</div><div class="detail-value">${s.product||'—'}</div></div>
+      ${s.title?`<div style="grid-column:1/-1;"><div class="detail-label">Title</div><div class="detail-value" style="font-size:15px;font-family:'DM Serif Display',serif;">${s.title}</div></div>`:''}      <div><div class="detail-label">Product</div><div class="detail-value">${s.product||'—'}</div></div>
       <div><div class="detail-label">Type</div><div><span class="type-pill">${s.type}</span></div></div>
       <div><div class="detail-label">Status</div><div>${sBadge(s.status)}</div></div>
       <div><div class="detail-label">Regulatory Lead</div><div class="detail-value">${s.lead||'—'}</div></div>
