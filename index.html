@@ -324,6 +324,7 @@
       <div class="nav-item" onclick="navigate('contracts',this)"><span class="nav-icon">📄</span> Contracts</div>
       <div class="nav-item" onclick="navigate('comms',this)"><span class="nav-icon">💬</span> Communications</div>
       <div class="nav-item" onclick="navigate('assessments',this)"><span class="nav-icon">🔬</span> Assessments</div>
+      <div class="nav-item" onclick="navigate('priorities',this)"><span class="nav-icon">🎯</span> Priority List</div>
       <div class="nav-section-label">Tools</div>
       <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
       <div class="nav-item" onclick="navigate('reports',this)"><span class="nav-icon">📊</span> Reports</div>
@@ -841,6 +842,71 @@
         <div id="acp-checklist" style="padding:20px 28px;flex:1;"></div>
       </div>
 
+
+      <!-- PRIORITY LIST -->
+      <div class="page" id="page-priorities">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Priority List</div>
+            <div class="panel-count" id="priorities-panel-count">0 items</div>
+          </div>
+          <div style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <input type="text" id="priorities-search" placeholder="🔍  Search by title, description, linked record..." oninput="renderPriorities()" style="width:100%;padding:9px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:13px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none;">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Priority Item</th><th>Category</th><th>Assigned To</th><th>Due Date</th><th>Linked To</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="priorities-tbody"></tbody>
+            </table>
+            <div id="priorities-empty" class="empty-state" style="display:none;">
+              <div class="empty-icon">🎯</div>
+              <h3>No priority items yet</h3>
+              <p>Click "+ Add Priority" to create your first priority item.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRIORITY MODAL -->
+      <div class="modal-overlay" id="priority-modal">
+        <div class="modal" style="max-width:580px;">
+          <div class="modal-header">
+            <h2 id="priority-modal-title">New Priority Item</h2>
+            <button class="modal-close" onclick="closeModal('priority-modal')">×</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="priority-edit-id">
+            <div class="form-group full"><label>Title *</label><input type="text" id="priority-title" placeholder="e.g. Obtain FSC certificate for Orabloc"></div>
+            <div class="form-group full"><label>Description</label><textarea id="priority-desc" placeholder="Details, context, what needs to be done..."></textarea></div>
+            <div class="form-group"><label>Category</label>
+              <select id="priority-category">
+                <option value="urgent">🔴 Urgent</option>
+                <option value="high">🟠 High</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="low">🟢 Low</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Assigned To</label><select id="priority-assignee"><option value="">— Select —</option></select></div>
+            <div class="form-group"><label>Due Date</label><input type="date" id="priority-due"></div>
+            <div class="form-group"><label>Status</label>
+              <select id="priority-status">
+                <option value="open">Open</option>
+                <option value="closed">Closed ✅</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Linked Task</label><select id="priority-task-link"><option value="">— None —</option></select></div>
+            <div class="form-group"><label>Linked Submission</label><select id="priority-sub-link"><option value="">— None —</option></select></div>
+            <div class="form-group"><label>Linked Product</label><select id="priority-prod-link"><option value="">— None —</option></select></div>
+            <div class="form-group"><label>Linked Project</label><select id="priority-proj-link"><option value="">— No Project —</option></select></div>
+            <div class="form-group full"><label>Notes</label><textarea id="priority-notes" placeholder="Additional notes or follow-up actions..."></textarea></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('priority-modal')">Cancel</button>
+            <button class="btn btn-primary" id="priority-save-btn" onclick="savePriority()">Save</button>
+          </div>
+        </div>
+      </div>
+
       <!-- AUDIT LOG -->
       <div class="page" id="page-auditlog">
         <div style="padding:24px;max-width:900px;">
@@ -1251,6 +1317,7 @@ async function loadAll() {
   await loadContracts();
   await loadComms();
   await loadAssessments();
+  await loadPriorities();
   try {
     const [t,s,p,w,pr] = await Promise.all([
       db.from('tasks').select('*').order('created_at',{ascending:false}),
@@ -1279,8 +1346,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},comms:{title:'Communications Log',sub:'Track all outgoing and incoming communications'},assessments:{title:'Document Assessments',sub:'Assess registration dossiers against EDA requirements'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',comms:'Add Communication',assessments:'Add Assessment',auditlog:'',users:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},comms:{title:'Communications Log',sub:'Track all outgoing and incoming communications'},assessments:{title:'Document Assessments',sub:'Assess registration dossiers against EDA requirements'},priorities:{title:'Priority List',sub:'Track high-priority items and action deadlines'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',comms:'Add Communication',assessments:'Add Assessment',priorities:'Add Priority',auditlog:'',users:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -1298,14 +1365,15 @@ function navigate(page,el){
   if(page==='contracts') renderContracts();
   if(page==='comms'){ populateCommSelects(); renderComms(); }
   if(page==='assessments') renderAssessments();
+  if(page==='priorities') renderPriorities();
   if(page==='users') renderUsers();
 }
-function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();else if(p==='contracts')openContractModal();else if(p==='comms')openCommModal();else if(p==='assessments')openAssessmentModal();}
+function openAddModal(){const p=currentPage==='dashboard'?'tasks':currentPage;if(p==='tasks')openTaskModal();else if(p==='submissions')openSubModal();else if(p==='workflows')openWfModal();else if(p==='products')openProdModal();else if(p==='projects')openProjModal();else if(p==='contracts')openContractModal();else if(p==='comms')openCommModal();else if(p==='assessments')openAssessmentModal();else if(p==='priorities')openPriorityModal();}
 function setTaskFilter(f,el){renderTasks();}
 function setSubFilter(f,el){renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();renderComms();renderAssessments();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();renderComms();renderAssessments();renderPriorities();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
 function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
@@ -1336,6 +1404,13 @@ function renderDashboard(){
   if(hi.length)acts.push({icon:'⚡',title:hi.length+' high-priority task'+(hi.length>1?'s':'')+' open',sub:hi.map(t=>t.title).slice(0,2).join(', ')});
   review.forEach(s=>{if(s.pdufa){const diff=(new Date(s.pdufa)-now)/86400000;if(diff<=30)acts.push({icon:'📋',title:s.id+' target date in '+Math.max(0,Math.ceil(diff))+' days',sub:s.product+' · '+s.type});}});
   products.forEach(p=>{if(p.renewalDate){const diff=(new Date(p.renewalDate)-now)/86400000;if(diff<=60&&diff>=0)acts.push({icon:'🔖',title:p.name+' renewal due in '+Math.ceil(diff)+' days',sub:'Reg: '+(p.regNo||'N/A')});if(diff<0)acts.push({icon:'🚨',title:p.name+' registration EXPIRED',sub:'Was due '+fmt(p.renewalDate)});}});
+  // Priority items due soon
+  const now2=new Date();now2.setHours(0,0,0,0);
+  priorities.filter(p=>p.status==='open'&&p.due).forEach(p=>{
+    const diff=(new Date(p.due)-now2)/86400000;
+    if(diff<0) acts.push({icon:'🎯',title:'Priority: '+p.title+' is OVERDUE',sub:'Was due '+fmt(p.due)});
+    else if(diff<=3) acts.push({icon:'🎯',title:'Priority: '+p.title+' due in '+Math.ceil(diff)+' day'+(Math.ceil(diff)!==1?'s':''),sub:fmt(p.due)});
+  });
   const al=document.getElementById('action-list');
   al.innerHTML=acts.length?acts.map(a=>`<div class="action-needed"><div class="action-icon">${a.icon}</div><div><div class="action-title">${a.title}</div><div class="action-sub">${a.sub}</div></div></div>`).join(''):`<div class="empty-state"><div class="empty-icon">✅</div><h3>All caught up!</h3></div>`;
 }
@@ -1833,6 +1908,226 @@ async function sendNotificationEmails(){
 
 
 
+
+
+// ── PRIORITY LIST ─────────────────────────────────────────────────────────────
+let priorities = [];
+
+const PRIORITY_CATS = {
+  'urgent': { label: 'Urgent', color: 'var(--accent)',  bg: 'var(--accent-light)',  icon: '🔴' },
+  'high':   { label: 'High',   color: 'var(--orange)',  bg: 'var(--orange-light)',  icon: '🟠' },
+  'medium': { label: 'Medium', color: 'var(--gold)',    bg: 'var(--gold-light)',    icon: '🟡' },
+  'low':    { label: 'Low',    color: 'var(--green)',   bg: 'var(--green-light)',   icon: '🟢' },
+};
+
+const mPri = r => ({
+  id: r.id, title: r.title, desc: r.description||'',
+  category: r.category||'medium', status: r.status||'open',
+  assignee: r.assignee||'', due: r.due_date||'',
+  taskLink: r.task_link||'', subLink: r.sub_link||'',
+  prodLink: r.prod_link||'', projLink: r.proj_link||'',
+  notes: r.notes||'',
+  closedAt: r.closed_at||'',
+  createdBy: r.created_by||'', createdAt: r.created_at_user||r.created_at||''
+});
+
+async function loadPriorities(){
+  const {data,error} = await db.from('priorities').select('*').order('created_at',{ascending:false});
+  if(!error) priorities = (data||[]).map(mPri);
+}
+
+function renderPriorities(){
+  const tb = document.getElementById('priorities-tbody');
+  const em = document.getElementById('priorities-empty');
+  const cnt = document.getElementById('priorities-panel-count');
+  if(!tb) return;
+  const q = (document.getElementById('priorities-search')?.value||'').toLowerCase().trim();
+  let f = [...priorities];
+  if(q) f = f.filter(p=>[p.title,p.desc,p.assignee,p.notes,p.category,p.status,
+    tasks.find(t=>t.id===p.taskLink)?.title||'',
+    submissions.find(s=>s.id===p.subLink)?.id||'',
+    products.find(pr=>pr.id===p.prodLink)?.name||'',
+    projects.find(pr=>pr.id===p.projLink)?.name||''
+  ].some(v=>(v||'').toLowerCase().includes(q)));
+  // Sort: open first, then by due date, then closed
+  f.sort((a,b)=>{
+    if(a.status==='closed'&&b.status!=='closed') return 1;
+    if(a.status!=='closed'&&b.status==='closed') return -1;
+    if(!a.due&&b.due) return 1;
+    if(a.due&&!b.due) return -1;
+    if(a.due&&b.due) return new Date(a.due)-new Date(b.due);
+    return 0;
+  });
+  cnt.textContent = f.length+' item'+(f.length!==1?'s':'')+' · '+priorities.filter(p=>p.status==='open').length+' open';
+  if(!f.length){ tb.innerHTML=''; em.style.display='block'; return; }
+  em.style.display='none';
+  const now = new Date(); now.setHours(0,0,0,0);
+  tb.innerHTML = f.map(p=>{
+    const cat = PRIORITY_CATS[p.category]||PRIORITY_CATS['medium'];
+    const closed = p.status==='closed';
+    const overdue = !closed && p.due && new Date(p.due)<now;
+    const lt = tasks.find(t=>t.id===p.taskLink);
+    const ls = submissions.find(s=>s.id===p.subLink);
+    const lp = products.find(pr=>pr.id===p.prodLink);
+    const lpr = projects.find(pr=>pr.id===p.projLink);
+    const links = [
+      lt ? `<span class="type-pill" style="font-size:10px;">✓ ${lt.title.slice(0,20)}${lt.title.length>20?'…':''}</span>` : '',
+      ls ? `<span class="type-pill" style="font-size:10px;">📋 ${ls.id}</span>` : '',
+      lp ? `<span class="type-pill" style="font-size:10px;">📦 ${lp.name.slice(0,15)}${lp.name.length>15?'…':''}</span>` : '',
+      lpr ? `<span class="type-pill" style="font-size:10px;">◉ ${lpr.name.slice(0,15)}${lpr.name.length>15?'…':''}</span>` : '',
+    ].filter(Boolean).join(' ');
+    return `<tr onclick="openPriorityDetail('${p.id}')" style="cursor:pointer;${closed?'opacity:0.6;':''}">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button onclick="event.stopPropagation();togglePriorityStatus('${p.id}')" style="width:22px;height:22px;border-radius:50%;border:2px solid ${closed?'var(--green)':'var(--border)'};background:${closed?'var(--green)':'transparent'};cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;" title="${closed?'Mark as Open':'Mark as Closed'}">${closed?'✓':''}</button>
+          <div>
+            <div style="font-weight:500;font-size:13.5px;${closed?'text-decoration:line-through;color:var(--text-muted);':''}">${p.title}</div>
+            ${p.desc?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">${p.desc.slice(0,70)}${p.desc.length>70?'…':''}</div>`:''}
+          </div>
+        </div>
+      </td>
+      <td><span style="background:${cat.bg};color:${cat.color};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">${cat.icon} ${cat.label}</span></td>
+      <td>${p.assignee?`<div class="assignee"><div class="avatar" style="background:${aColor(p.assignee)};width:22px;height:22px;font-size:9px;">${ini(p.assignee)}</div><span style="font-size:12px;">${p.assignee}</span></div>`:'—'}</td>
+      <td><span class="due-date ${closed?'due-ok':dueCls(p.due)}" style="${overdue?'color:var(--accent);font-weight:600;':''}">${fmt(p.due)||'—'}${overdue?' ⚠️':''}</span></td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:4px;">${links||'—'}</div></td>
+      <td>${closed
+        ? `<span style="background:var(--green-light);color:var(--green);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;">✅ Closed${p.closedAt?' · '+new Date(p.closedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):''}</span>`
+        : `<span style="background:var(--blue-light);color:var(--blue);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">Open</span>`
+      }</td>
+      <td><div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editPriority('${p.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--accent)" onclick="event.stopPropagation();deletePriority('${p.id}')">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function openPriorityDetail(id){
+  const p = priorities.find(p=>p.id===id);
+  if(!p) return;
+  const cat = PRIORITY_CATS[p.category]||PRIORITY_CATS['medium'];
+  const lt = tasks.find(t=>t.id===p.taskLink);
+  const ls = submissions.find(s=>s.id===p.subLink);
+  const lp = products.find(pr=>pr.id===p.prodLink);
+  const lpr = projects.find(pr=>pr.id===p.projLink);
+  const now = new Date(); now.setHours(0,0,0,0);
+  const overdue = p.status!=='closed' && p.due && new Date(p.due)<now;
+  document.getElementById('detail-modal-content').innerHTML = `
+    <div class="modal-header" style="background:var(--surface2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+      <h2 style="font-size:16px;">${p.title}</h2>
+      <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div><div class="detail-label">Category</div><div><span style="background:${cat.bg};color:${cat.color};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">${cat.icon} ${cat.label}</span></div></div>
+      <div><div class="detail-label">Status</div><div>${p.status==='closed'?'<span style="background:var(--green-light);color:var(--green);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;">✅ Closed</span>':'<span style="background:var(--blue-light);color:var(--blue);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">Open</span>'}</div></div>
+      <div><div class="detail-label">Assigned To</div><div class="detail-value">${p.assignee||'—'}</div></div>
+      <div><div class="detail-label">Due Date</div><div class="detail-value" style="${overdue?'color:var(--accent);font-weight:600;':''}">${fmt(p.due)||'—'}${overdue?' ⚠️ Overdue':''}</div></div>
+      ${lt?`<div><div class="detail-label">Linked Task</div><div class="detail-value">✓ ${lt.title}</div></div>`:''}
+      ${ls?`<div><div class="detail-label">Linked Submission</div><div class="detail-value">📋 ${ls.id} — ${ls.product}</div></div>`:''}
+      ${lp?`<div><div class="detail-label">Linked Product</div><div class="detail-value">📦 ${lp.name}</div></div>`:''}
+      ${lpr?`<div><div class="detail-label">Linked Project</div><div class="detail-value">◉ ${lpr.name}</div></div>`:''}
+      ${p.desc?`<div style="grid-column:1/-1;"><div class="detail-label">Description</div><div class="detail-value" style="white-space:pre-wrap;">${p.desc}</div></div>`:''}
+      ${p.notes?`<div style="grid-column:1/-1;"><div class="detail-label">Notes</div><div class="detail-value" style="white-space:pre-wrap;">${p.notes}</div></div>`:''}
+      ${p.closedAt?`<div style="grid-column:1/-1;"><div class="detail-label">Closed At</div><div class="detail-value" style="color:var(--green);">✅ ${new Date(p.closedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div></div>`:''}
+    </div>
+    <div style="padding:0 24px 20px;display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal')">Close</button>
+      ${p.status==='open'?`<button class="btn btn-primary btn-sm" style="background:var(--green);" onclick="closeModal('detail-modal');togglePriorityStatus('${p.id}')">✅ Mark Closed</button>`:`<button class="btn btn-outline btn-sm" onclick="closeModal('detail-modal');togglePriorityStatus('${p.id}')">Reopen</button>`}
+      <button class="btn btn-primary btn-sm" onclick="closeModal('detail-modal');editPriority('${p.id}')">Edit</button>
+    </div>`;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+async function togglePriorityStatus(id){
+  const p = priorities.find(p=>p.id===id);
+  if(!p) return;
+  const newStatus = p.status==='closed' ? 'open' : 'closed';
+  const update = {status: newStatus, closed_at: newStatus==='closed' ? new Date().toISOString() : null};
+  setSyncStatus('syncing');
+  await db.from('priorities').update(update).eq('id',id);
+  p.status = newStatus;
+  p.closedAt = update.closed_at||'';
+  renderPriorities();
+  setSyncStatus('online');
+  showToast(newStatus==='closed'?'✅':'🔄', newStatus==='closed'?'Marked as closed':'Reopened');
+}
+
+function openPriorityModal(id){
+  document.getElementById('priority-modal-title').textContent = id ? 'Edit Priority Item' : 'New Priority Item';
+  document.getElementById('priority-edit-id').value = id||'';
+  // Populate selects
+  document.getElementById('priority-assignee').innerHTML = '<option value="">— Select —</option>'+appUsers.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  document.getElementById('priority-task-link').innerHTML = '<option value="">— None —</option>'+tasks.map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+  document.getElementById('priority-sub-link').innerHTML = '<option value="">— None —</option>'+submissions.map(s=>`<option value="${s.id}">${s.id} — ${s.product}</option>`).join('');
+  document.getElementById('priority-prod-link').innerHTML = '<option value="">— None —</option>'+products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('priority-proj-link').innerHTML = '<option value="">— No Project —</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  if(id){
+    const p = priorities.find(p=>p.id===id);
+    document.getElementById('priority-title').value = p.title;
+    document.getElementById('priority-desc').value = p.desc;
+    document.getElementById('priority-category').value = p.category;
+    document.getElementById('priority-assignee').value = p.assignee;
+    document.getElementById('priority-due').value = p.due;
+    document.getElementById('priority-status').value = p.status;
+    document.getElementById('priority-task-link').value = p.taskLink;
+    document.getElementById('priority-sub-link').value = p.subLink;
+    document.getElementById('priority-prod-link').value = p.prodLink;
+    document.getElementById('priority-proj-link').value = p.projLink;
+    document.getElementById('priority-notes').value = p.notes;
+  } else {
+    ['priority-title','priority-desc','priority-notes'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('priority-category').value = 'high';
+    document.getElementById('priority-assignee').value = '';
+    document.getElementById('priority-due').value = '';
+    document.getElementById('priority-status').value = 'open';
+    document.getElementById('priority-task-link').value = '';
+    document.getElementById('priority-sub-link').value = '';
+    document.getElementById('priority-prod-link').value = '';
+    document.getElementById('priority-proj-link').value = '';
+  }
+  document.getElementById('priority-modal').classList.add('open');
+}
+
+function editPriority(id){ if(!canEdit()){showToast('⚠️','You have view-only access.');return;} openPriorityModal(id); }
+
+async function savePriority(){
+  const title = document.getElementById('priority-title').value.trim();
+  if(!title){ alert('Title is required.'); return; }
+  const btn = document.getElementById('priority-save-btn'); btn.disabled=true; btn.textContent='Saving...'; setSyncStatus('syncing');
+  const editId = document.getElementById('priority-edit-id').value;
+  const id = editId||uid();
+  const session = getSession();
+  const newStatus = document.getElementById('priority-status').value;
+  const existingP = editId ? priorities.find(p=>p.id===editId) : null;
+  const closedAt = newStatus==='closed' ? (existingP?.closedAt||new Date().toISOString()) : null;
+  const row = {
+    id, title,
+    description: document.getElementById('priority-desc').value.trim(),
+    category: document.getElementById('priority-category').value,
+    assignee: document.getElementById('priority-assignee').value||null,
+    due_date: document.getElementById('priority-due').value||null,
+    status: newStatus,
+    task_link: document.getElementById('priority-task-link').value||null,
+    sub_link: document.getElementById('priority-sub-link').value||null,
+    prod_link: document.getElementById('priority-prod-link').value||null,
+    proj_link: document.getElementById('priority-proj-link').value||null,
+    notes: document.getElementById('priority-notes').value.trim(),
+    closed_at: closedAt,
+    ...(!editId&&{created_by:session?.name||'Unknown', created_at_user:new Date().toISOString()})
+  };
+  const {error} = editId ? await db.from('priorities').update(row).eq('id',editId) : await db.from('priorities').insert(row);
+  btn.disabled=false; btn.textContent='Save';
+  if(error){ showToast('❌','Save failed: '+error.message); setSyncStatus('online'); return; }
+  showToast('✓', editId?'Updated':'Priority added');
+  await loadPriorities(); renderPriorities(); closeModal('priority-modal'); setSyncStatus('online');
+}
+
+async function deletePriority(id){
+  if(!canDelete()){ showToast('⚠️','Only admins can delete.'); return; }
+  if(!confirm('Delete this priority item?')) return;
+  await db.from('priorities').delete().eq('id',id);
+  await loadPriorities(); renderPriorities(); showToast('🗑','Deleted');
+}
 
 // ── ASSESSMENTS ───────────────────────────────────────────────────────────────
 let assessments = [];
