@@ -371,12 +371,7 @@
       </div>
 
       <!-- PROJECTS -->
-      <div class="page" id="page-projects">
-        <div id="proj-grid" class="proj-grid"></div>
-        <div id="projects-empty" class="empty-state" style="display:none;padding:80px;">
-          <div class="empty-icon">◉</div><h3>No projects yet</h3><p>Click "+ Add New" to create your first project.</p>
-        </div>
-      </div>
+      
 
       <!-- TASKS -->
       <div class="page" id="page-tasks">
@@ -486,8 +481,9 @@
           <button class="filter-chip" onclick="setPdFilter('done',this)">Done</button>
         </div>
         <!-- Bottleneck Analysis -->
-        <div id="pd-bottleneck" style="margin-bottom:24px;"></div>
         <div id="pd-tasks-list"></div>
+        <!-- Bottleneck Analysis — always shown below tasks -->
+        <div id="pd-bottleneck" style="margin-top:24px;"></div>
       </div>
 
       <!-- WORKFLOWS -->
@@ -3562,7 +3558,14 @@ function renderProjectBottleneck(projId){
   if(!el) return;
   const now = new Date(); now.setHours(0,0,0,0);
   const {parties} = getCommAnalysis(projId);
-  if(!parties.length){ el.innerHTML=''; return; }
+  if(!parties.length){ 
+    el.innerHTML = `
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">📊 Bottleneck Analysis</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;font-size:13px;color:var(--text-muted);">
+        No communications logged for this project yet. Log communications in the <strong>Communications</strong> tab and link them to submissions that belong to this project.
+      </div>`;
+    return; 
+  }
 
   const hasIssues = parties.some(p=>p.overdueItems.length>0);
   el.innerHTML = `
