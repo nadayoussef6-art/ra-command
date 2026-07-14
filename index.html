@@ -327,6 +327,7 @@
       <div class="nav-item" onclick="navigate('priorities',this)"><span class="nav-icon">🎯</span> Priority List</div>
       <div class="nav-section-label">Tools</div>
       <div class="nav-item" onclick="navigate('workflows',this)"><span class="nav-icon">⟳</span> Workflows <span class="nav-badge" id="wf-badge">0</span></div>
+      <div class="nav-item" onclick="navigate('waitingon',this)"><span class="nav-icon">⏳</span> Waiting On</div>
       <div class="nav-item" onclick="navigate('reports',this)"><span class="nav-icon">📊</span> Reports</div>
       <div class="nav-item" onclick="navigate('auditlog',this)"><span class="nav-icon">📝</span> Audit Log</div>
       <div class="nav-section-label">Settings</div>
@@ -484,6 +485,8 @@
           <button class="filter-chip" onclick="setPdFilter('blocked',this)">Blocked</button>
           <button class="filter-chip" onclick="setPdFilter('done',this)">Done</button>
         </div>
+        <!-- Bottleneck Analysis -->
+        <div id="pd-bottleneck" style="margin-bottom:24px;"></div>
         <div id="pd-tasks-list"></div>
       </div>
 
@@ -536,9 +539,13 @@
           <!-- Section: Performance KPIs -->
           <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Team Performance</div>
           <div class="stats-row" id="kpi-perf-row" style="margin-bottom:24px;"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <div class="panel"><div class="panel-header"><div class="panel-title">Response Rate by Team Member</div></div><div style="padding:16px;"><canvas id="kpi-perf-response-chart" height="200"></canvas></div></div>
             <div class="panel"><div class="panel-header"><div class="panel-title">Ball in Court — Submissions</div></div><div style="padding:16px;"><canvas id="kpi-ball-court-chart" height="200"></canvas></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+            <div class="panel"><div class="panel-header"><div class="panel-title">Avg Response Time: Officer vs External Parties</div></div><div style="padding:16px;"><canvas id="kpi-perf-avgtime-chart" height="200"></canvas></div></div>
+            <div class="panel"><div class="panel-header"><div class="panel-title">External Party Delay Distribution</div></div><div style="padding:16px;"><canvas id="kpi-perf-party-chart" height="200"></canvas></div></div>
           </div>
 
           <!-- Section: Projects KPIs -->
@@ -910,6 +917,20 @@
             <button class="btn btn-outline" onclick="closeModal('priority-modal')">Cancel</button>
             <button class="btn btn-primary" id="priority-save-btn" onclick="savePriority()">Save</button>
           </div>
+        </div>
+      </div>
+
+
+      <!-- WAITING ON -->
+      <div class="page" id="page-waitingon">
+        <div style="padding:24px;max-width:1100px;">
+
+          <!-- Summary cards -->
+          <div id="wo-summary-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;"></div>
+
+          <!-- Per-party panels -->
+          <div id="wo-parties" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;"></div>
+
         </div>
       </div>
 
@@ -1353,8 +1374,8 @@ function subscribeRealtime() {
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
-const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},comms:{title:'Communications Log',sub:'Track all outgoing and incoming communications'},assessments:{title:'Document Assessments',sub:'Assess registration dossiers against EDA requirements'},priorities:{title:'Priority List',sub:'Track high-priority items and action deadlines'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
-const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',comms:'Add Communication',assessments:'Add Assessment',priorities:'Add Priority',auditlog:'',users:''};
+const pageMeta={dashboard:{title:'Dashboard',sub:'Overview of your regulatory pipeline'},projects:{title:'Projects',sub:'Organize tasks by project'},tasks:{title:'Tasks',sub:'Track and manage regulatory affairs tasks'},submissions:{title:'Submissions',sub:'Drug & device regulatory submissions'},products:{title:'Products',sub:'Product portfolio & regulatory lifecycle'},workflows:{title:'Workflows',sub:'Manage dossiers and documents through review stages'},notifications:{title:'Notifications',sub:'Configure email alerts for upcoming due dates'},reports:{title:'Reports',sub:'Export and analyze your regulatory data'},kpi:{title:'KPI Dashboard',sub:'Key performance indicators across your regulatory pipeline'},contracts:{title:'Contracts',sub:'Track all regulatory affairs contracts and agreements'},comms:{title:'Communications Log',sub:'Track all outgoing and incoming communications'},assessments:{title:'Document Assessments',sub:'Assess registration dossiers against EDA requirements'},priorities:{title:'Priority List',sub:'Track high-priority items and action deadlines'},auditlog:{title:'Audit Log',sub:'Track who created records and when'},waitingon:{title:'Waiting On',sub:'See who is holding up each communication — by party and by project'},users:{title:'User Management',sub:'Manage who has access to RA Command'}};
+const addLabels={dashboard:'Add Task',projects:'Add Project',tasks:'Add Task',submissions:'Add Submission',products:'Add Product',workflows:'Add Workflow',notifications:'',reports:'',kpi:'',contracts:'Add Contract',comms:'Add Communication',assessments:'Add Assessment',priorities:'Add Priority',auditlog:'',waitingon:'',users:''};
 
 function navigate(page,el){
   currentPage=page;
@@ -1369,6 +1390,7 @@ function navigate(page,el){
   if(page==='reports'){ initReportFilters(); renderReport(); }
   if(page==='kpi') renderKPI();
   if(page==='auditlog') renderAuditLog();
+  if(page==='waitingon') renderWaitingOn();
   if(page==='contracts') renderContracts();
   if(page==='comms'){ populateCommSelects(); renderComms(); }
   if(page==='assessments') renderAssessments();
@@ -1380,7 +1402,7 @@ function setTaskFilter(f,el){renderTasks();}
 function setSubFilter(f,el){renderSubmissions();}
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
-function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();renderComms();renderAssessments();renderPriorities();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();}
+function renderAll(){populateProjSelects();renderDashboard();renderProjects();renderTasks();renderSubmissions();renderProducts();renderWorkflows();renderContracts();renderComms();renderAssessments();renderPriorities();updateBadges();if(currentPage==='reports'){initReportFilters();renderReport();}if(currentPage==='kpi')renderKPI();if(currentPage==='auditlog')renderAuditLog();if(currentPage==='waitingon')renderWaitingOn();}
 function updateBadges(){document.getElementById('task-badge').textContent=tasks.filter(t=>t.status!=='done').length;document.getElementById('sub-badge').textContent=submissions.length;document.getElementById('prod-badge').textContent=products.length;document.getElementById('wf-badge').textContent=workflows.length;document.getElementById('proj-badge').textContent=projects.filter(p=>p.status==='active').length;}
 
 function renderDashboard(){
@@ -3471,6 +3493,244 @@ async function doLoginFromDB(){
   },400);
 }
 
+
+// ── BOTTLENECK & WAITING ON ANALYSIS ─────────────────────────────────────────
+
+function getCommAnalysis(filterProjId){
+  const now = new Date(); now.setHours(0,0,0,0);
+  // Filter comms by project if needed (via linked submission)
+  let data = [...comms];
+  if(filterProjId){
+    const projSubs = submissions.filter(s=>s.projLink===filterProjId).map(s=>s.id);
+    data = data.filter(c=>projSubs.includes(c.subLink)||c.subLink===filterProjId);
+  }
+  // Group by party
+  const parties = {};
+  data.forEach(c=>{
+    const party = c.party;
+    if(!parties[party]) parties[party] = {
+      name: party, sent: 0, received: 0,
+      overdueItems: [], pendingItems: [], respondedItems: [],
+      totalWaitDays: 0, respondedCount: 0
+    };
+    const p = parties[party];
+    if(c.direction==='sent'){
+      p.sent++;
+      if(c.responseDate){
+        // Calculate wait days
+        const waitDays = Math.round((new Date(c.responseDate)-new Date(c.date))/86400000);
+        p.totalWaitDays += waitDays;
+        p.respondedCount++;
+        p.respondedItems.push({...c, waitDays});
+      } else if(c.deadline && new Date(c.deadline)<now){
+        p.overdueItems.push({...c, daysPast: Math.round((now-new Date(c.deadline))/86400000)});
+      } else {
+        const daysSent = c.date ? Math.round((now-new Date(c.date))/86400000) : 0;
+        p.pendingItems.push({...c, daysSent});
+      }
+    } else {
+      p.received++;
+    }
+  });
+  return {parties: Object.values(parties), total: data.length};
+}
+
+function getOfficerAnalysis(){
+  const now = new Date(); now.setHours(0,0,0,0);
+  // Items where party=EDA or Manufacturer and direction=received (they sent to us, we need to respond)
+  // OR direction=sent and logged_by is the officer (officer's own response time)
+  const members = [...new Set(comms.map(c=>c.loggedBy).filter(Boolean))];
+  const result = {};
+  members.forEach(m=>{
+    const mComms = comms.filter(c=>c.loggedBy===m&&c.direction==='sent');
+    const responded = mComms.filter(c=>c.responseDate&&c.date);
+    const avgDays = responded.length
+      ? Math.round(responded.reduce((acc,c)=>{
+          return acc + (new Date(c.responseDate)-new Date(c.date))/86400000;
+        },0)/responded.length)
+      : 0;
+    const overdue = mComms.filter(c=>!c.responseDate&&c.deadline&&new Date(c.deadline)<now).length;
+    result[m] = {name:m, total:mComms.length, responded:responded.length, avgDays, overdue,
+      rate: mComms.length ? Math.round(responded.length/mComms.length*100) : 0};
+  });
+  return result;
+}
+
+// ── RENDER: Project Bottleneck Panel ──────────────────────────────────────────
+function renderProjectBottleneck(projId){
+  const el = document.getElementById('pd-bottleneck');
+  if(!el) return;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const {parties} = getCommAnalysis(projId);
+  if(!parties.length){ el.innerHTML=''; return; }
+
+  const hasIssues = parties.some(p=>p.overdueItems.length>0);
+  el.innerHTML = `
+    <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">📊 Bottleneck Analysis</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px;">
+      ${parties.map(p=>{
+        const avgWait = p.respondedCount ? Math.round(p.totalWaitDays/p.respondedCount) : null;
+        const hasOverdue = p.overdueItems.length > 0;
+        return `<div style="background:${hasOverdue?'var(--accent-light)':p.overdueItems.length===0&&p.pendingItems.length>0?'var(--gold-light)':'var(--surface2)'};border:1.5px solid ${hasOverdue?'rgba(192,57,43,.2)':p.pendingItems.length>0?'rgba(184,134,11,.2)':'var(--border)'};border-radius:var(--radius-lg);padding:14px;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;">${p.name}</div>
+          ${hasOverdue?`<div style="color:var(--accent);font-size:12px;font-weight:600;">❌ ${p.overdueItems.length} overdue response${p.overdueItems.length!==1?'s':''}</div>`:''}
+          ${p.pendingItems.length?`<div style="color:var(--gold);font-size:12px;">⏳ ${p.pendingItems.length} awaiting response</div>`:''}
+          ${avgWait!==null?`<div style="color:var(--text-muted);font-size:11px;margin-top:4px;">Avg response: ${avgWait} day${avgWait!==1?'s':''}</div>`:''}
+          ${p.overdueItems.length===0&&p.pendingItems.length===0?`<div style="color:var(--green);font-size:12px;">✅ All clear</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+    ${parties.some(p=>p.overdueItems.length>0) ? `
+    <div style="font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Overdue Items</div>
+    ${parties.flatMap(p=>p.overdueItems.map(c=>`
+      <div style="background:var(--accent-light);border:1px solid rgba(192,57,43,.15);border-radius:var(--radius-lg);padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;">❌</span>
+        <div style="flex:1;">
+          <div style="font-weight:500;font-size:13px;">${c.subject}</div>
+          <div style="font-size:11.5px;color:var(--text-muted);">To: ${c.party} · Deadline was ${fmt(c.deadline)} · ${c.daysPast} day${c.daysPast!==1?'s':''} overdue</div>
+        </div>
+      </div>`)).join('')}` : ''}
+  `;
+}
+
+// ── RENDER: Waiting On page ───────────────────────────────────────────────────
+function renderWaitingOn(){
+  if(currentPage!=='waitingon') return;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const {parties, total} = getCommAnalysis(null);
+
+  // Summary cards
+  const totalOverdue = parties.reduce((a,p)=>a+p.overdueItems.length,0);
+  const totalPending = parties.reduce((a,p)=>a+p.pendingItems.length,0);
+  const totalResponded = parties.reduce((a,p)=>a+p.respondedCount,0);
+  const parties2 = parties.filter(p=>p.overdueItems.length+p.pendingItems.length>0).length;
+
+  document.getElementById('wo-summary-cards').innerHTML = `
+    <div class="stat-card" style="border-top:3px solid var(--accent);">
+      <div class="stat-label">Overdue Responses</div>
+      <div class="stat-value" style="color:var(--accent);">${totalOverdue}</div>
+      <div class="stat-sub">Past deadline, no reply</div>
+    </div>
+    <div class="stat-card" style="border-top:3px solid var(--gold);">
+      <div class="stat-label">Awaiting Response</div>
+      <div class="stat-value" style="color:var(--gold);">${totalPending}</div>
+      <div class="stat-sub">Sent, within deadline</div>
+    </div>
+    <div class="stat-card" style="border-top:3px solid var(--blue);">
+      <div class="stat-label">Parties with Open Items</div>
+      <div class="stat-value" style="color:var(--blue);">${parties2}</div>
+      <div class="stat-sub">External parties</div>
+    </div>
+    <div class="stat-card" style="border-top:3px solid var(--green);">
+      <div class="stat-label">Responded</div>
+      <div class="stat-value" style="color:var(--green);">${totalResponded}</div>
+      <div class="stat-sub">Closed items</div>
+    </div>
+  `;
+
+  // Per-party panels
+  const activeParties = parties.filter(p=>p.overdueItems.length+p.pendingItems.length>0);
+  if(!activeParties.length){
+    document.getElementById('wo-parties').innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">✅</div><h3>All clear!</h3><p>No pending or overdue communications.</p></div>`;
+    return;
+  }
+
+  document.getElementById('wo-parties').innerHTML = activeParties.map(p=>{
+    const avgWait = p.respondedCount ? Math.round(p.totalWaitDays/p.respondedCount) : null;
+    const allItems = [
+      ...p.overdueItems.map(c=>({...c, _type:'overdue'})),
+      ...p.pendingItems.map(c=>({...c, _type:'pending'}))
+    ].sort((a,b)=>{
+      if(a._type==='overdue'&&b._type!=='overdue') return -1;
+      if(a._type!=='overdue'&&b._type==='overdue') return 1;
+      return 0;
+    });
+
+    return `<div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">${p.name}</div>
+        <div style="display:flex;gap:8px;margin-left:auto;align-items:center;">
+          ${p.overdueItems.length?`<span style="background:var(--accent-light);color:var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;">❌ ${p.overdueItems.length} overdue</span>`:''}
+          ${p.pendingItems.length?`<span style="background:var(--gold-light);color:var(--gold);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500;">⏳ ${p.pendingItems.length} pending</span>`:''}
+          ${avgWait!==null?`<span style="background:var(--surface2);color:var(--text-muted);border-radius:20px;padding:2px 10px;font-size:11px;">Avg ${avgWait}d reply</span>`:''}
+        </div>
+      </div>
+      <div style="padding:0 0 8px;">
+        ${allItems.map(c=>{
+          const ls = submissions.find(s=>s.id===c.subLink);
+          const isOverdue = c._type==='overdue';
+          return `<div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;">
+            <span style="font-size:16px;flex-shrink:0;margin-top:1px;">${isOverdue?'❌':'⏳'}</span>
+            <div style="flex:1;">
+              <div style="font-weight:500;font-size:13px;">${c.subject}</div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px;">
+                <span>Sent: ${fmt(c.date)}</span>
+                ${c.deadline?`<span style="${isOverdue?'color:var(--accent);font-weight:600;':''}">Deadline: ${fmt(c.deadline)}${isOverdue?' ('+c.daysPast+'d ago)':''}</span>`:''}
+                ${isOverdue?'':`<span>Waiting: ${c.daysSent} day${c.daysSent!==1?'s':''}</span>`}
+                ${ls?`<span>📋 ${ls.id}</span>`:''}
+                ${c.loggedBy?`<span>👤 ${c.loggedBy}</span>`:''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Enhanced KPI: officer vs external avg response time ────────────────────────
+function renderPerformanceCharts(){
+  const now = new Date(); now.setHours(0,0,0,0);
+  const officerData = getOfficerAnalysis();
+  const {parties} = getCommAnalysis(null);
+
+  // Chart 1: Avg response time comparison — officer vs external parties
+  const labels = [];
+  const data = [];
+  const colors = [];
+
+  Object.values(officerData).forEach(m=>{
+    labels.push(m.name.split(' ')[0]); // First name only
+    data.push(m.avgDays);
+    colors.push('#1e3a8a');
+  });
+  parties.filter(p=>p.respondedCount>0).forEach(p=>{
+    labels.push(p.name);
+    data.push(Math.round(p.totalWaitDays/p.respondedCount));
+    colors.push(p.name==='EDA'?'#b8860b':p.name==='Manufacturer'?'#c05800':'#5c2d91');
+  });
+
+  if(labels.length){
+    makeBar('kpi-perf-avgtime-chart', labels, data, colors, false);
+  }
+
+  // Chart 2: Overdue items by party
+  const partyLabels = parties.map(p=>p.name);
+  const partyOverdue = parties.map(p=>p.overdueItems.length);
+  const partyPending = parties.map(p=>p.pendingItems.length);
+  if(partyLabels.length){
+    destroyChart('kpi-perf-party-chart');
+    const ctx = document.getElementById('kpi-perf-party-chart');
+    if(ctx){
+      kpiCharts['kpi-perf-party-chart'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: partyLabels,
+          datasets: [
+            {label:'Overdue', data:partyOverdue, backgroundColor:'#c0392b', borderRadius:4},
+            {label:'Pending', data:partyPending, backgroundColor:'#b8860b', borderRadius:4}
+          ]
+        },
+        options:{
+          responsive:true,
+          plugins:{legend:{position:'top',labels:{font:{size:11}}}},
+          scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}
+        }
+      });
+    }
+  }
+}
+
 // ── AUDIT LOG ─────────────────────────────────────────────────────────────────
 function renderAuditLog(){
   if(currentPage!=='auditlog') return;
@@ -3835,6 +4095,9 @@ function renderKPI(){
     );
   }
 
+  // enhanced performance charts
+  renderPerformanceCharts();
+
   // ── PROJECTS ──
   const allProj = projects;
   const activeProj = allProj.filter(p=>p.status==='active').length;
@@ -4196,6 +4459,7 @@ function openProjDetail(id){
   if(ls) links.push(`<span class="type-pill">📋 ${ls.id}</span>`);
   document.getElementById('pd-links').innerHTML = links.join('');
   renderPdTasks();
+  renderProjectBottleneck(id);
   document.getElementById('proj-detail-overlay').style.display='block';
   document.getElementById('proj-detail-panel').style.display='block';
 }
