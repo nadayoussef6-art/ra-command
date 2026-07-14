@@ -544,7 +544,7 @@
             <div class="panel"><div class="panel-header"><div class="panel-title">Ball in Court — Submissions</div></div><div style="padding:16px;"><canvas id="kpi-ball-court-chart" height="200"></canvas></div></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
-            <div class="panel"><div class="panel-header"><div class="panel-title">Avg Response Time: Officer vs External Parties</div></div><div style="padding:16px;"><canvas id="kpi-perf-avgtime-chart" height="200"></canvas></div></div>
+            <div class="panel"><div class="panel-header"><div class="panel-title">Avg Response Time: Officer vs External Parties</div><div style="font-size:11px;color:var(--text-muted);margin-left:8px;">days to respond</div></div><div style="padding:16px;"><canvas id="kpi-perf-avgtime-chart" height="200"></canvas></div></div>
             <div class="panel"><div class="panel-header"><div class="panel-title">External Party Delay Distribution</div></div><div style="padding:16px;"><canvas id="kpi-perf-party-chart" height="200"></canvas></div></div>
           </div>
 
@@ -3701,7 +3701,29 @@ function renderPerformanceCharts(){
   });
 
   if(labels.length){
-    makeBar('kpi-perf-avgtime-chart', labels, data, colors, false);
+    destroyChart('kpi-perf-avgtime-chart');
+    const ctx2 = document.getElementById('kpi-perf-avgtime-chart');
+    if(ctx2){
+      kpiCharts['kpi-perf-avgtime-chart'] = new Chart(ctx2, {
+        type: 'bar',
+        data: { labels, datasets:[{ data, backgroundColor:colors, borderRadius:4, borderSkipped:false }] },
+        options: {
+          responsive:true,
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y} days`}}
+          },
+          scales:{
+            x:{grid:{display:false},ticks:{font:{size:11}}},
+            y:{
+              grid:{color:'rgba(0,0,0,.05)'},
+              ticks:{font:{size:11},callback:v=>v+' d'},
+              title:{display:true,text:'Days to Respond',font:{size:11},color:'var(--text-muted)'}
+            }
+          }
+        }
+      });
+    }
   }
 
   // Chart 2: Overdue items by party
